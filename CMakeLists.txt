@@ -2,7 +2,7 @@
 # Cmake configuration file
 #
 
-############################# INITIAL SECTION #############################################
+############################# INITIAL SECTION ##########################
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
 
 PROJECT(minipro C)
@@ -24,7 +24,7 @@ ENDIF()
 SET(MINIPRO_VERSION         "${MINIPRO_VERSION_MAJOR}.${MINIPRO_VERSION_MINOR}.${MINIPRO_VERSION_PATCH}")
 SET(MINIPRO_MASTER_SITE_URL "https://github.com/rozhuk-im/minipro")
 
-############################# OPTIONS SECTION #############################################
+############################# OPTIONS SECTION ##########################
 
 IF(NOT LOCAL_CONFDIR)
 	SET(LOCAL_CONFDIR "${CONFDIR}")
@@ -34,7 +34,7 @@ IF(NOT MANDIR)
 	SET(MANDIR "${CMAKE_INSTALL_PREFIX}/share/man")
 ENDIF(NOT MANDIR)
 
-############################# INCLUDE SECTION #############################################
+############################# INCLUDE SECTION ##########################
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
@@ -50,35 +50,10 @@ PKG_SEARCH_MODULE(LIBUSB1 REQUIRED libusb-1.0)
 INCLUDE_DIRECTORIES(SYSTEM ${LIBUSB1_INCLUDE_DIRS})
 LIST(APPEND CMAKE_REQUIRED_LIBRARIES ${LIBUSB1_LIBRARIES})
 
-############################# MACRO SECTION #############################################
+############################# MACRO SECTION ############################
 
-FUNCTION(INSTALL_IF_NOT_EXISTS src dest destname suffix)
-  IF(NOT IS_ABSOLUTE "${src}")
-	SET(src "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
-  ENDIF()
-  GET_FILENAME_COMPONENT(src_name "${src}" NAME)
-  GET_FILENAME_COMPONENT(dest_name "${destname}" NAME)
-  IF(NOT IS_ABSOLUTE "${dest}")
-	SET(dest "${CMAKE_INSTALL_PREFIX}/${dest}")
-  ENDIF()
-  INSTALL(CODE "
-	IF(NOT EXISTS \"\$ENV{DESTDIR}${dest}/${dest_name}${suffix}\")
-	  #FILE(INSTALL \"${src}\" DESTINATION \"${dest}\")
-	  MESSAGE(STATUS \"Installing: \$ENV{DESTDIR}${dest}/${dest_name}${suffix}\")
-	  EXECUTE_PROCESS(COMMAND \${CMAKE_COMMAND} -E copy \"${src}\"
-					  \"\$ENV{DESTDIR}${dest}/${dest_name}${suffix}\"
-					  RESULT_VARIABLE copy_result
-					  ERROR_VARIABLE error_output)
-	  IF(copy_result)
-		MESSAGE(FATAL_ERROR \${error_output})
-	  ENDIF()
-	ELSE()
-	  MESSAGE(STATUS \"Skipping  : \$ENV{DESTDIR}${dest}/${dest_name}${suffix}\")
-	ENDIF()
-  ")
-ENDFUNCTION(INSTALL_IF_NOT_EXISTS)
 
-############################# CONFIG SECTION #############################################
+############################# CONFIG SECTION ###########################
 # Initial set
 
 # Prefer local include dirs to system ones
@@ -248,18 +223,18 @@ IF(NOT DESTDIR)
 ENDIF(NOT DESTDIR)
 
 
-################################ SUBDIRS SECTION ###########################
+################################ SUBDIRS SECTION #######################
 
 LIST(APPEND MINIPRO_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES}")
 
 ADD_SUBDIRECTORY(src)
 
-############################ TARGETS SECTION ###############################
+############################ TARGETS SECTION ###########################
 
 CONFIGURE_FILE(config.h.in src/config.h)
 ADD_DEFINITIONS("HAVE_CONFIG_H")
 
-##################### INSTALLATION ##########################################
+##################### INSTALLATION #####################################
 
 # Binaries
 
