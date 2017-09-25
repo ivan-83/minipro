@@ -33,8 +33,10 @@ version:
 sudo apt-get install build-essential git fakeroot dpkg-dev libusb-1.0-0-dev
 git clone https://github.com/vdudouyt/minipro.git
 cd minipro
+mkdir build
+cd build
+cmake ..
 make
-sudo make install
 ```
 
 ## Making a .deb file for Debian / Ubuntu
