@@ -220,4 +220,72 @@ chip_db_dump_to_h(void) {
 		printf("},\n");
 	}
 }
+
+void
+chip_db_dump_to_ini(void) {
+	chip_p chip;
+	char buf[4096];
+	size_t buf_used;
+
+	for (chip = chips_array; chip->name; chip ++) {
+		buf_used = (size_t)snprintf(buf, sizeof(buf),
+		    "\n"
+		    "[%s]\n"
+		    "protocol_id=0x%02x\n"
+		    "variant=0x%02x\n"
+		    "read_block_size=0x%02x\n"
+		    "write_block_size=0x%02x\n"
+		    "code_memory_size=0x%02x\n"
+		    "data_memory_size=0x%02x\n"
+		    "data_memory2_size=0x%02x\n"
+		    "chip_id=0x%02x\n"
+		    "chip_id_size=0x%02x\n"
+		    "opts1=0x%02x\n"
+		    "opts2=0x%02x\n"
+		    "opts3=0x%02x\n"
+		    "opts4=0x%02xl\n"
+		    "package_details=0x%02x\n"
+		    "write_unlock=0x%02x\n"
+		    "fuses="
+		    chip->name,
+		    (0xffff & chip->protocol_id),
+		    chip->variant,
+		    chip->read_block_size,
+		    chip->write_block_size,
+		    chip->code_memory_size,
+		    chip->data_memory_size,
+		    chip->data_memory2_size,
+		    chip->chip_id,
+		    chip->chip_id_size,
+		    chip->opts1,
+		    chip->opts2,
+		    chip->opts3,
+		    chip->opts4,
+		    chip->package_details,
+		    chip->write_unlock);
+		if (NULL == chip->fuses) {
+			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
+			    "NULL\n");
+		} else if (avr_fuses == chip->fuses) {
+			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
+			    "avr_fuses\n");
+		} else if (avr2_fuses == chip->fuses) {
+			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
+			    "avr2_fuses\n");
+		} else if (avr3_fuses == chip->fuses) {
+			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
+			    "avr3_fuses\n");
+		} else if (pic_fuses == chip->fuses) {
+			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
+			    "pic_fuses\n");
+		} else if (pic2_fuses == chip->fuses) {
+			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
+			    "pic2_fuses\n");
+		} else {
+			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
+			    "???\n"); /* Must not reach here. */
+		}
+		printf(buf);
+	}
+}
 #endif
