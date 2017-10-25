@@ -246,7 +246,7 @@ chip_db_dump_to_ini(void) {
 		    "opts4=0x%02xl\n"
 		    "package_details=0x%02x\n"
 		    "write_unlock=0x%02x\n"
-		    "fuses="
+		    "fuses=",
 		    chip->name,
 		    (0xffff & chip->protocol_id),
 		    chip->variant,
@@ -285,7 +285,7 @@ chip_db_dump_to_ini(void) {
 			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
 			    "???\n"); /* Must not reach here. */
 		}
-		printf(buf);
+		printf("%s", buf);
 	}
 }
 #endif
