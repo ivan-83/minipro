@@ -31,7 +31,7 @@ version:
 ## Compilation and Installation
 ```nohighlight
 sudo apt-get install build-essential git fakeroot dpkg-dev libusb-1.0-0-dev
-git clone https://github.com/rozhuk-im/minipro.git
+git clone --recursive https://github.com/rozhuk-im/minipro.git
 cd minipro
 mkdir build
 cd build

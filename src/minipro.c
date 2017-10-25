@@ -6,7 +6,9 @@
 #include <errno.h>
 #include <libusb.h>
 
-#include "strh2num.h"
+#include "utils/macro.h"
+#include "utils/mem_utils.h"
+#include "utils/strh2num.h"
 #include "minipro.h"
 
 
@@ -36,17 +38,6 @@ static const uint8_t mp_chip_page_write_cmd[] = {
 	0,
 	0
 };
-
-
-#define zalloc(__size)		calloc(1, (__size))
-
-#ifndef min
-#	define min(__a, __b)	(((__a) < (__b)) ? (__a) : (__b))
-#endif
-
-#ifndef max
-#	define max(__a, __b)	(((__a) > (__b)) ? (__a) : (__b))
-#endif
 
 
 #define MP_LOG_ERR(__error, __descr)					\
@@ -157,19 +148,6 @@ U32TO8n_LITTLE(const uint32_t v, size_t size, uint8_t *p) {
 	memcpy(p, &v, size);
 }
 
-
-static inline void *
-mem_chr_ptr(const void *ptr, const void *buf, const size_t size,
-    const uint8_t what_find) {
-	size_t offset;
-
-	if (NULL == buf || buf > ptr)
-		return (NULL);
-	offset = (size_t)(((const uint8_t*)ptr) - ((const uint8_t*)buf));
-	if (offset >= size)
-		return (NULL);
-	return ((void*)memchr(ptr, what_find, (size - offset)));
-}
 
 /* Internal staff. */
 /* abc=zxy */

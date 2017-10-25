@@ -14,10 +14,11 @@
 #include <signal.h>
 #include <errno.h>
 
-#include "config.h"
+#include "utils/strh2num.h"
+#include "utils/sys.h"
 #include "minipro.h"
 #include "database.h"
-#include "strh2num.h"
+#include "config.h"
 
 
 #define MAX_CHIP_FILE_SIZE	(1024 * 1024 * 1024) /* 1Gb */
@@ -233,10 +234,10 @@ static void
 print_usage(const char *progname) {
 	size_t i;
 	const char *usage =
-		"minipro version %s     A free and open TL866XX programmer\n"
+		PACKAGE_STRING"     "PACKAGE_DESCRIPTION"\n"
 		"Usage: %s [options]\n"
 		"options:\n";
-	fprintf(stderr, usage, MINIPRO_VERSION_FULL, basename(progname));
+	fprintf(stderr, usage, basename(progname));
 
 	for (i = 0; NULL != lopts[i].name; i ++) {
 		if (0 == lopts[i].val) {
@@ -258,81 +259,6 @@ progress_cb(minipro_p mp __unused, size_t done, size_t total, void *udata) {
 	fflush(stdout);
 }
 
-static int
-get_file_size(const char *file_name, size_t *file_size) {
-	struct stat sb;
-
-	if (NULL == file_name || NULL == file_size)
-		return (EINVAL);
-	if (0 != stat(file_name, &sb))
-		return (errno);
-	(*file_size) = (size_t)sb.st_size;
-
-	return (0);
-}
-
-static int
-read_file(const char *file_name, off_t offset, size_t size, size_t max_size,
-    uint8_t **buf, size_t *buf_size) {
-	int fd, error;
-	ssize_t rd;
-	struct stat sb;
-
-	if (NULL == file_name || NULL == buf || NULL == buf_size)
-		return (EINVAL);
-	/* Open file. */
-	fd = open(file_name, O_RDONLY);
-	if (-1 == fd)
-		return (errno);
-	/* Get file size. */
-	if (0 != fstat(fd, &sb)) {
-		error = errno;
-		goto err_out;
-	}
-	/* Check size and offset. */
-	if (0 != size) {
-		if ((offset + (off_t)size) > sb.st_size) {
-			error = EINVAL;
-			goto err_out;
-		}
-	} else {
-		/* Check overflow. */
-		if (offset >= sb.st_size) {
-			error = EINVAL;
-			goto err_out;
-		}
-		size = (size_t)(sb.st_size - offset);
-		if (0 != max_size && max_size < size) {
-			(*buf_size) = size;
-			error = EFBIG;
-			goto err_out;
-		}
-	}
-	/* Allocate buf for file content. */
-	(*buf_size) = size;
-	(*buf) = malloc((size + sizeof(void*)));
-	if (NULL == (*buf)) {
-		error = ENOMEM;
-		goto err_out;
-	}
-	/* Read file content. */
-	rd = pread(fd, (*buf), size, offset);
-	close(fd);
-	if (-1 == rd) {
-		error = errno;
-		free((*buf));
-		(*buf) = NULL;
-		return (error);
-	}
-	(*buf)[size] = 0;
-	return (0);
-
-err_out:
-	close(fd);
-	return (error);
-}
-
-
 int
 main(int argc, char **argv) {
 	int error = 0;
@@ -342,7 +268,8 @@ main(int argc, char **argv) {
 	int fd;
 	uint32_t chip_id, chip_val, buf_val;
 	uint8_t chip_id_size, *file_data = NULL, *chip_data = NULL;
-	size_t file_size, file_data_size, chip_data_size, chip_size = 0, tr_size, err_offset;
+	size_t file_data_size, chip_data_size, chip_size = 0, tr_size, err_offset;
+	off_t file_size;
 	char status_msg[64];
 
 	error = cmd_opts_parse(argc, argv, &cmd_opts);
@@ -513,32 +440,35 @@ main(int argc, char **argv) {
 		break;
 	case 1: /* verify. */
 	case 2: /* write. */
-		error = get_file_size(cmd_opts.file_name, &file_size);
+		error = file_size_get(cmd_opts.file_name, 0, &file_size);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on get file size.");
 			goto err_out;
 		}
 
-		if (file_size <= (size_t)cmd_opts.file_offset ||
-		    (file_size - (size_t)cmd_opts.file_offset) < tr_size) {
+		if (file_size <= cmd_opts.file_offset ||
+		    (size_t)(file_size - cmd_opts.file_offset) < tr_size) {
 			if (0 != cmd_opts.size_error) {
 				fprintf(stderr, "Incorrect file size and offset: %zu - %zu = %zu, needed at least %zu.\n",
-				    file_size, (size_t)cmd_opts.file_offset,
-				    (file_size - (size_t)cmd_opts.file_offset),
+				    (size_t)file_size,
+				    (size_t)cmd_opts.file_offset,
+				    (size_t)(file_size - cmd_opts.file_offset),
 				    tr_size);
 				error = -1;
 				goto err_out;
 			} else if (0 == cmd_opts.size_error_no_warn) {
 				printf("Warning: Incorrect file size and offset: %zu - %zu = %zu, needed at least %zu.\n",
-				    file_size, (size_t)cmd_opts.file_offset,
-				    (file_size - (size_t)cmd_opts.file_offset),
+				    (size_t)file_size,
+				    (size_t)cmd_opts.file_offset,
+				    (size_t)(file_size - cmd_opts.file_offset),
 				    tr_size);
 			}
 		}
 		/* Loading file. */
 		/* file_data_size = ((0 != tr_size) ? tr_size : (file_size - cmd_opts.file_offset)); */
-		error = read_file(cmd_opts.file_name, cmd_opts.file_offset, tr_size,
-		    MAX_CHIP_FILE_SIZE, &file_data, &file_data_size);
+		error = read_file(cmd_opts.file_name, 0,
+		    cmd_opts.file_offset, tr_size, MAX_CHIP_FILE_SIZE,
+		    &file_data, &file_data_size);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on file read.");
 			goto err_out;

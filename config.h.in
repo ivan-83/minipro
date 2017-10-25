@@ -1,35 +1,34 @@
-#ifndef MINIPRO_CONFIG_H_IN
-#define MINIPRO_CONFIG_H_IN
-
-#cmakedefine DEBUG_MODE          1
-#cmakedefine GIT_VERSION         1
+#ifndef __CONFIG_H_IN__
+#define __CONFIG_H_IN__
 
 
-#define MINIPRO_VERSION_MAJOR "${MINIPRO_VERSION_MAJOR}"
-#define MINIPRO_VERSION_MINOR "${MINIPRO_VERSION_MINOR}"
-#define MINIPRO_VERSION_PATCH "${MINIPRO_VERSION_PATCH}"
+/*--------------------------------------------------------------------*/
+/* API, macros, includes. */
 
-#define MINIPRO_VERSION_MAJOR_NUM ${MINIPRO_VERSION_MAJOR_NUM}
-#define MINIPRO_VERSION_MINOR_NUM ${MINIPRO_VERSION_MINOR_NUM}
-#define MINIPRO_VERSION_PATCH_NUM ${MINIPRO_VERSION_PATCH_NUM}
+/* Includes. */
+#cmakedefine HAVE_SYS_TYPES_H		1
+#cmakedefine HAVE_SYS_TIME_H		1
 
-#define MINIPRO_VERSION_BRANCH "${MINIPRO_VERSION_MAJOR}.${MINIPRO_VERSION_MINOR}"
+/* API */
+#cmakedefine HAVE_MEMSET_S		1
+#cmakedefine HAVE_EXPLICIT_BZERO	1
+#cmakedefine HAVE_REALLOCARRAY		1
 
-#if defined(GIT_VERSION) && GIT_VERSION == 1
-# define RVERSION         "${MINIPRO_VERSION}"
-# define MINIPRO_VERSION_FULL         "${MINIPRO_VERSION}_${MINIPRO_ID}"
-# define RID              "${MINIPRO_ID}"
-# define MINIPRO_VERSION_NUM 0x${MINIPRO_VERSION_MAJOR_NUM}${MINIPRO_VERSION_MINOR_NUM}${MINIPRO_VERSION_PATCH_NUM}${MINIPRO_ID}ULL
-#else
-# define MINIPRO_VERSION_FULL         "${MINIPRO_VERSION}"
-# define RVERSION          "${MINIPRO_VERSION}"
-# define MINIPRO_VERSION_NUM 0x${MINIPRO_VERSION_MAJOR_NUM}${MINIPRO_VERSION_MINOR_NUM}${MINIPRO_VERSION_PATCH_NUM}0000000ULL
-# define RID "release"
-#endif
-
-#define MINIPRO_MASTER_SITE_URL "${MINIPRO_MASTER_SITE_URL}"
-
-#define BUILDROOT "${CMAKE_BINARY_DIR}"
+/* Macros. */
+#cmakedefine HAVE_PATH_MAX		1
+#cmakedefine HAVE_MAXPATHLEN		1
 
 
-#endif
+/*--------------------------------------------------------------------*/
+/* Package information. */
+#define PACKAGE			@PROJECT_NAME@
+#define VERSION			PACKAGE_VERSION
+#define PACKAGE_NAME		"@PACKAGE_NAME@"
+#define PACKAGE_VERSION		"@PACKAGE_VERSION@"
+#define PACKAGE_URL		"@PACKAGE_URL@"
+#define PACKAGE_BUGREPORT	"@PACKAGE_BUGREPORT@"
+#define PACKAGE_STRING		"@PACKAGE_STRING@"
+#define PACKAGE_DESCRIPTION	"@PACKAGE_DESCRIPTION@"
+
+
+#endif /* __CONFIG_H_IN__ */

@@ -1,6 +1,9 @@
 SET(MINIPRO_BIN		main.c
 			minipro.c
-			database.c)
+			database.c
+			liblcb/src/utils/ini.c
+			liblcb/src/utils/sys.c
+			liblcb/src/utils/buf_str.c)
 
 ADD_EXECUTABLE(minipro ${MINIPRO_BIN})
 SET_TARGET_PROPERTIES(minipro PROPERTIES LINKER_LANGUAGE C)
