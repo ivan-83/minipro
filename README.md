@@ -14,7 +14,7 @@ Autoelectric (http://www.autoelectric.cn/)
 
 ## Synopsis
 
-```nohighlight
+```
 $ minipro -p ATMEGA48 -w atmega48.bin
 $ minipro -p ATMEGA48 -r atmega48.bin
 ```
@@ -29,8 +29,8 @@ version:
 ```sudo apt-get -t wheezy-backports libusb-1.0-0-dev```
 
 ## Compilation and Installation
-```nohighlight
-sudo apt-get install build-essential git fakeroot dpkg-dev libusb-1.0-0-dev
+```
+sudo apt-get install build-essential git cmake fakeroot dpkg-dev libusb-1.0-0-dev
 git clone --recursive https://github.com/rozhuk-im/minipro.git
 cd minipro
 mkdir build
@@ -39,15 +39,3 @@ cmake ..
 make
 ```
 
-## Making a .deb file for Debian / Ubuntu
-
-Building a Debian package directly from this repository is easy.  Make 
-sure you have the packages described above installed.  Be sure it all 
-builds, then do this:
-
-```nohighlight
-sudo apt-get install fakeroot dpkg-dev
-fakeroot dpkg-buildpackage -b
-```
-
-You should then have a .deb file for you to install with ```dpkg -i```.
