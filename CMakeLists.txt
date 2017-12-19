@@ -25,10 +25,10 @@ OPTION(ENABLE_OPTIMIZATION	"Enable extra optimizations [default: OFF]"		OFF)
 OPTION(ENABLE_COVERAGE		"Build with code coverage options [default: OFF]"	OFF)
 OPTION(ENABLE_FULL_DEBUG	"Build with all possible debug [default: OFF]"		OFF)
 
-# Now CMAKE_INSTALL_PREFIX is a base prefix for everything.
-IF(NOT MANDIR)
-	SET(MANDIR "${CMAKE_INSTALL_PREFIX}/share/man")
-ENDIF(NOT MANDIR)
+# Now CMAKE_INSTALL_PREFIX is a base prefix for everything
+IF(NOT SHARE_DIR)
+	SET(SHARE_DIR "${CMAKE_INSTALL_PREFIX}/share/minipro")
+ENDIF()
 
 ############################# INCLUDE SECTION ##########################
 
@@ -48,31 +48,14 @@ LIST(APPEND CMAKE_REQUIRED_LIBRARIES ${LIBUSB1_LIBRARIES})
 
 ############################# MACRO SECTION ############################
 
-OPTION(ENABLE_OPTIMIZATION	"Enable extra optimizations [default: OFF]"		OFF)
-OPTION(ENABLE_COVERAGE		"Build with code coverage options [default: OFF]"	OFF)
-OPTION(ENABLE_FULL_DEBUG	"Build with all possible debug [default: OFF]"		OFF)
-
-# Now CMAKE_INSTALL_PREFIX is a base prefix for everything
-IF(NOT MANDIR)
-	SET(MANDIR "${CMAKE_INSTALL_PREFIX}/share/man")
-ENDIF(NOT MANDIR)
-
-IF(NOT DBDIR)
-	SET(DBDIR "${CMAKE_INSTALL_PREFIX}/share/minipro/db")
-ENDIF(NOT DBDIR)
-
 
 ############################# CONFIG SECTION ###########################
+
 # Prefer local include dirs to system ones.
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/"
 		"${CMAKE_CURRENT_SOURCE_DIR}/src"
 		"${CMAKE_CURRENT_SOURCE_DIR}/src/liblcb/include"
 		"${CMAKE_BINARY_DIR}/src")
-
-IF(CMAKE_INSTALL_PREFIX)
-	SET(PREFIX 	${CMAKE_INSTALL_PREFIX})
-ENDIF(CMAKE_INSTALL_PREFIX)
-
 
 SET(TAR "tar")
 
@@ -81,14 +64,14 @@ IF(CMAKE_SYSTEM_NAME MATCHES "^.*BSD$|DragonFly")
 	ADD_DEFINITIONS(-DFREEBSD -D_BSD_SOURCE)
 	MESSAGE(STATUS "Configuring for BSD system")
 	SET(TAR "gtar")
-ENDIF(CMAKE_SYSTEM_NAME MATCHES "^.*BSD$|DragonFly")
+ENDIF()
 
 IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_BSD_SOURCE -DDARWIN")
 	MESSAGE(STATUS "Configuring for Darwin")
 	SET(TAR "gnutar")
 	SET(CMAKE_FIND_FRAMEWORK "NEVER")
-ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+ENDIF()
 
 
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -97,10 +80,10 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	ADD_DEFINITIONS(-D__USE_GNU=1)
 	IF(BUILD_CPU_MODE STREQUAL "32")
 		ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE)
-	ENDIF(BUILD_CPU_MODE STREQUAL "32")
+	ENDIF()
 
 	LIST(APPEND CMAKE_REQUIRED_LIBRARIES rt)
-ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+ENDIF()
 
 
 # Process with warn flags.
@@ -260,9 +243,6 @@ ADD_CUSTOM_TARGET(dist ${CMAKE_SOURCE_DIR}/dist.sh
 
 ##################### INSTALLATION #####################################
 
-# Manual pages
-INSTALL(FILES "man/minipro.1" DESTINATION ${MANDIR}/man1)
-
-# Utils
-INSTALL(PROGRAMS "utils/miniprohex" RENAME miniprohex DESTINATION bin)
-
+# Text files
+INSTALL(FILES "minipro_db.ini" DESTINATION ${SHARE_DIR})
+INSTALL(FILES "README.md" DESTINATION ${SHARE_DIR})
