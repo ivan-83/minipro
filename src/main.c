@@ -132,6 +132,7 @@ cmd_opts_parse(int argc, char **argv, cmd_opts_p cmd_opts) {
 		switch (lopts[i].has_arg) {
 		case optional_argument:
 			opts_str[opt_idx ++] = ':';
+			/* PASSTROUTH. */
 		case required_argument:
 			opts_str[opt_idx ++] = ':';
 		}
@@ -359,12 +360,12 @@ main(int argc, char **argv) {
 			tr_size = cmd_opts.size;
 		}
 		if (0 == tr_size) {
-			fprintf(stderr, "Data to transfer size seto to 0, nothink to do.\n");
+			fprintf(stderr, "Data to transfer size set to 0, nothink to do.\n");
 			error = -1;
 			goto err_out;
 		}
 		printf("Will transfer: %zu bytes, starting from: 0x%08x.\n",
-		    tr_size,  cmd_opts.address);
+		    tr_size, cmd_opts.address);
 		break;
 	case MP_CHIP_PAGE_CONFIG:
 		if (0 != cmd_opts.file_offset ||

@@ -10,7 +10,6 @@
 #cmakedefine HAVE_SYS_TIME_H		1
 
 /* API */
-/* API */
 #cmakedefine HAVE_MEMSET_S		1
 #cmakedefine HAVE_EXPLICIT_BZERO	1
 #cmakedefine HAVE_MEMRCHR		1
@@ -33,6 +32,9 @@
 #define PACKAGE_BUGREPORT	"@PACKAGE_BUGREPORT@"
 #define PACKAGE_STRING		"@PACKAGE_STRING@"
 #define PACKAGE_DESCRIPTION	"@PACKAGE_DESCRIPTION@"
+
+
+#define DB_FILE_DEF		"@SHARE_DIR@/minipro_db.ini"
 
 
 #endif /* __CONFIG_H_IN__ */

@@ -431,7 +431,7 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	    (sizeof(mp->msg) - 7) < chip->write_block_size) {
 		MP_LOG_ERR_FMT(EINVAL, "Cant handle this chip: increase msg_hdr[%zu] buf to %i and recompile.",
 		    (size_t)sizeof(mp->msg),
-		    (7 + max(chip->read_block_size, chip->write_block_size)));
+		    (7 + MAX(chip->read_block_size, chip->write_block_size)));
 		return (EINVAL);
 	}
 	/* Set new. */
@@ -688,7 +688,7 @@ minipro_read_buf(minipro_p mp, uint8_t cmd,
 		MP_PROGRESS_UPDATE(cb, mp, 0, buf_size, udata);
 		MP_RET_ON_ERR_CLEANUP(minipro_read_block(mp, cmd, addr,
 		    mp->read_block_buf, blk_size));
-		tm = min((blk_size - offset), to_read); /* Data size to store in buf. */
+		tm = MIN((blk_size - offset), to_read); /* Data size to store in buf. */
 		memcpy(buf, (mp->read_block_buf + offset), tm);
 		addr += tm;
 		buf += tm;
@@ -743,7 +743,7 @@ minipro_verify_buf(minipro_p mp, uint8_t cmd,
 		MP_PROGRESS_UPDATE(cb, mp, 0, buf_size, udata);
 		MP_RET_ON_ERR_CLEANUP(minipro_read_block(mp, cmd, addr,
 		    mp->read_block_buf, blk_size));
-		tm = min((blk_size - offset), to_read); /* Data size to store in buf. */
+		tm = MIN((blk_size - offset), to_read); /* Data size to store in buf. */
 		diff_off = memcmp_idx(buf, (mp->read_block_buf + offset), tm);
 		if (diff_off != tm) {
 			/* movemem() for get (*chip_val) at diff pos offset. */
@@ -834,7 +834,7 @@ minipro_write_buf(minipro_p mp, uint8_t cmd,
 		MP_RET_ON_ERR(minipro_begin_transaction(mp));
 
 		/* Update block. */
-		tm = min((blk_size - offset), to_write); /* Data size to store in buf. */
+		tm = MIN((blk_size - offset), to_write); /* Data size to store in buf. */
 		memcpy((mp->write_block_buf + offset), buf, tm);
 		/* Write updated block. */
 		MP_RET_ON_ERR_CLEANUP(minipro_write_block(mp, cmd, addr,
