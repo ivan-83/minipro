@@ -12,6 +12,15 @@ Autoelectric (http://www.autoelectric.cn/)
 * Overcurrent protection
 * System testing
 
+## This fork features
+* Advanced error handling
+* More options for partial flash read/write
+* Chips DB in text file, so user can add/edit chips without recompilation
+* BSD systems support (tested on FreeBSD)
+* Modern CMake build system
+* Less code, more clean code, fixed code style
+* All futures after fork is backported
+
 ## Prerequisites
 
 You'll need some sort of Linux or BSD machine.
