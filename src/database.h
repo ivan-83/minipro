@@ -51,9 +51,5 @@ void	chip_db_dump_flt(const char *name);
 
 void	chip_db_print_info(const chip_p chip);
 
-#ifdef DEBUG
-void	chip_db_dump_to_h(void);
-void	chip_db_dump_to_ini(void);
-#endif
 
 #endif

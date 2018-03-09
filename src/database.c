@@ -60,7 +60,7 @@ static chip_p chips_db = NULL;
 
 
 static int
-chip_db_parse(ini_p ini, size_t sect_off, const uint8_t *sect_name,
+chip_db_parse_item(ini_p ini, size_t sect_off, const uint8_t *sect_name,
     size_t sect_name_size, chip_p chip) {
 	const uint8_t *val_name, *val;
 	size_t val_off, val_name_size, val_size;
@@ -69,6 +69,7 @@ chip_db_parse(ini_p ini, size_t sect_off, const uint8_t *sect_name,
 	if (NULL == ini || NULL == sect_name || NULL == chip)
 		return (EINVAL);
 
+	/* Parse fields. */
 	smask = 0;
 	val_off = 0;
 	while (0 == ini_sect_val_enum(ini, sect_off, &val_off,
@@ -144,12 +145,14 @@ chip_db_parse(ini_p ini, size_t sect_off, const uint8_t *sect_name,
 		val_off ++;
 	}
 
+	/* Is all fields set? */
 	if (((((uint32_t)1) << 16) - 1) != smask) {
 		fprintf(stderr, "Section: \"%.*s\", at line %zu does not contain all required fields.\n",
 		    (int)sect_name_size, sect_name, sect_off);
 		return (EINVAL);
 	}
-	
+
+	/* Store name. */
 	chip->name = zalloc((sect_name_size + sizeof(void*)));
 	if (NULL == chip->name)
 		return (ENOMEM);
@@ -198,18 +201,24 @@ chip_db_load(const char *file_name, size_t file_name_size) {
 		error = realloc_items((void**)&chips_db,
 		    sizeof(chip_t), &cdb_allocated,
 		    DB_CHIPS_PREALLOC, cdb_count);
-		if (0 != error) {
-			chip_db_free();
+		if (0 != error)
 			goto err_out;
-		}
-		if (0 == chip_db_parse(ini, sect_off, sect_name, sect_name_size,
+		if (0 == chip_db_parse_item(ini, sect_off, sect_name, sect_name_size,
 		    &chips_db[cdb_count])) {
 			cdb_count ++;
 		}
 		sect_off ++;
 	}
 
+	/* Make sure that last NULL element exist. */
+	error = realloc_items((void**)&chips_db,
+	    sizeof(chip_t), &cdb_allocated,
+	    4, (cdb_count + 1));
+
 err_out:
+	if (0 != error) {
+		chip_db_free();
+	}
 	free(buf);
 	ini_destroy(ini);
 
@@ -341,120 +350,3 @@ chip_db_print_info(const chip_p chip) {
 	printf("Read buffer size: %d Bytes\n", chip->read_block_size);
 	printf("Write buffer size: %d Bytes\n", chip->write_block_size);
 }
-
-
-#ifdef DEBUG
-void
-chip_db_dump_to_h(void) {
-	chip_p chip;
-
-	if (NULL == chips_db)
-		return;
-	for (chip = chips_db; chip->name; chip ++) {
-		printf("{\n");
-		printf("	.name = \"%s\",\n", chip->name);
-		printf("	.protocol_id = 0x%02x,\n", (0xffff & chip->protocol_id));
-		printf("	.variant = 0x%02x,\n", chip->variant);
-		printf("	.read_block_size = 0x%02x,\n", chip->read_block_size);
-		printf("	.write_block_size = 0x%02x,\n", chip->write_block_size);
-		printf("	.code_memory_size = 0x%02x,\n", chip->code_memory_size);
-		printf("	.data_memory_size = 0x%02x,\n", chip->data_memory_size);
-		printf("	.data_memory2_size = 0x%02x,\n", chip->data_memory2_size);
-		printf("	.chip_id = 0x%02x,\n", chip->chip_id);
-		printf("	.chip_id_size = 0x%02x,\n", chip->chip_id_size);
-		printf("	.opts1 = 0x%02x,\n", chip->opts1);
-		printf("	.opts2 = 0x%02x,\n", chip->opts2);
-		printf("	.opts3 = 0x%02x,\n", chip->opts3);
-		printf("	.opts4 = 0x%02x,\n", chip->opts4);
-		printf("	.package_details = 0x%02x,\n", chip->package_details);
-		printf("	.write_unlock = 0x%02x,\n", chip->write_unlock);
-		printf("	.fuses = ");
-		if (NULL == chip->fuses) {
-			printf("NULL,\n");
-		} else if (avr_fuses == chip->fuses) {
-			printf("avr_fuses,\n");
-		} else if (avr2_fuses == chip->fuses) {
-			printf("avr2_fuses,\n");
-		} else if (avr3_fuses == chip->fuses) {
-			printf("avr3_fuses,\n");
-		} else if (pic_fuses == chip->fuses) {
-			printf("pic_fuses,\n");
-		} else if (pic2_fuses == chip->fuses) {
-			printf("pic2_fuses,\n");
-		} else {
-			printf("???,\n"); /* Must not reach here. */
-		}
-		printf("},\n");
-	}
-}
-
-void
-chip_db_dump_to_ini(void) {
-	chip_p chip;
-	char buf[4096];
-	size_t buf_used;
-
-	if (NULL == chips_db)
-		return;
-	for (chip = chips_db; chip->name; chip ++) {
-		buf_used = (size_t)snprintf(buf, sizeof(buf),
-		    "\n"
-		    "[%s]\n"
-		    "protocol_id=0x%02x\n"
-		    "variant=0x%02x\n"
-		    "read_block_size=0x%02x\n"
-		    "write_block_size=0x%02x\n"
-		    "code_memory_size=0x%02x\n"
-		    "data_memory_size=0x%02x\n"
-		    "data_memory2_size=0x%02x\n"
-		    "chip_id=0x%02x\n"
-		    "chip_id_size=0x%02x\n"
-		    "opts1=0x%02x\n"
-		    "opts2=0x%02x\n"
-		    "opts3=0x%02x\n"
-		    "opts4=0x%02xl\n"
-		    "package_details=0x%02x\n"
-		    "write_unlock=0x%02x\n"
-		    "fuses=",
-		    chip->name,
-		    (0xffff & chip->protocol_id),
-		    chip->variant,
-		    chip->read_block_size,
-		    chip->write_block_size,
-		    chip->code_memory_size,
-		    chip->data_memory_size,
-		    chip->data_memory2_size,
-		    chip->chip_id,
-		    chip->chip_id_size,
-		    chip->opts1,
-		    chip->opts2,
-		    chip->opts3,
-		    chip->opts4,
-		    chip->package_details,
-		    chip->write_unlock);
-		if (NULL == chip->fuses) {
-			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
-			    "NULL\n");
-		} else if (avr_fuses == chip->fuses) {
-			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
-			    "avr_fuses\n");
-		} else if (avr2_fuses == chip->fuses) {
-			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
-			    "avr2_fuses\n");
-		} else if (avr3_fuses == chip->fuses) {
-			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
-			    "avr3_fuses\n");
-		} else if (pic_fuses == chip->fuses) {
-			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
-			    "pic_fuses\n");
-		} else if (pic2_fuses == chip->fuses) {
-			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
-			    "pic2_fuses\n");
-		} else {
-			buf_used += (size_t)snprintf((buf + buf_used), (sizeof(buf) - buf_used),
-			    "???\n"); /* Must not reach here. */
-		}
-		printf("%s", buf);
-	}
-}
-#endif
