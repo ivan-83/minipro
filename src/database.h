@@ -38,6 +38,8 @@ typedef struct chip_s {
 
 #define CHIP_NAME_MAX		64	/* Max chip name len. */
 
+void	chip_db_free(void);
+int	chip_db_load(const char *file_name, size_t file_name_size);
 
 int	is_chip_id_prob_eq(const chip_p chip, const uint32_t id, const uint8_t id_size);
 int	is_chip_id_eq(const chip_p chip, const uint32_t id, const uint8_t id_size);

@@ -3,9 +3,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <errno.h>
+
+#include "utils/strh2num.h"
+#include "utils/mem_utils.h"
+#include "utils/sys.h"
+#include "utils/ini.h"
 
 #include "minipro.h"
 #include "database.h"
+
+#define DB_CHIPS_PREALLOC	512
 
 
 static fuse_decl_t avr_fuses[] = {
@@ -48,12 +56,165 @@ static fuse_decl_t pic2_fuses[] = {
 	{ .name = "conf_word1",	.cmd = MP_CMD_READ_CFG,	.size = 2, .offset = 2 },
 };
 
+static chip_p chips_db = NULL;
 
-static chip_t chips_array[] = {
-	#include "devices.h"
-	{ .name = NULL },
-};
 
+static int
+chip_db_parse(ini_p ini, size_t sect_off, const uint8_t *sect_name,
+    size_t sect_name_size, chip_p chip) {
+	const uint8_t *val_name, *val;
+	size_t val_off, val_name_size, val_size;
+	uint32_t smask;
+
+	if (NULL == ini || NULL == sect_name || NULL == chip)
+		return (EINVAL);
+
+	smask = 0;
+	val_off = 0;
+	while (0 == ini_sect_val_enum(ini, sect_off, &val_off,
+	    &val_name, &val_name_size, &val, &val_size)) {
+		if (0 == mem_cmpn_cstr("protocol_id", val_name, val_name_size)) {
+			chip->protocol_id = ustrh2u8(val, val_size);
+			smask |= (((uint32_t)1) << 0);
+		} else if (0 == mem_cmpn_cstr("variant", val_name, val_name_size)) {
+			chip->variant = ustrh2u8(val, val_size);
+			smask |= (((uint32_t)1) << 1);
+		} else if (0 == mem_cmpn_cstr("read_block_size", val_name, val_name_size)) {
+			chip->read_block_size = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 2);
+		} else if (0 == mem_cmpn_cstr("write_block_size", val_name, val_name_size)) {
+			chip->write_block_size = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 3);
+		} else if (0 == mem_cmpn_cstr("code_memory_size", val_name, val_name_size)) {
+			chip->code_memory_size = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 4);
+		} else if (0 == mem_cmpn_cstr("data_memory_size", val_name, val_name_size)) {
+			chip->data_memory_size = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 5);
+		} else if (0 == mem_cmpn_cstr("data_memory2_size", val_name, val_name_size)) {
+			chip->data_memory2_size = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 6);
+		} else if (0 == mem_cmpn_cstr("chip_id", val_name, val_name_size)) {
+			chip->chip_id = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 7);
+		} else if (0 == mem_cmpn_cstr("chip_id_size", val_name, val_name_size)) {
+			chip->chip_id_size = ustrh2u8(val, val_size);
+			smask |= (((uint32_t)1) << 8);
+		} else if (0 == mem_cmpn_cstr("opts1", val_name, val_name_size)) {
+			chip->opts1 = ustrh2u16(val, val_size);
+			smask |= (((uint32_t)1) << 9);
+		} else if (0 == mem_cmpn_cstr("opts2", val_name, val_name_size)) {
+			chip->opts2 = ustrh2u16(val, val_size);
+			smask |= (((uint32_t)1) << 10);
+		} else if (0 == mem_cmpn_cstr("opts3", val_name, val_name_size)) {
+			chip->opts3 = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 11);
+		} else if (0 == mem_cmpn_cstr("opts4", val_name, val_name_size)) {
+			chip->opts4 = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 12);
+		} else if (0 == mem_cmpn_cstr("package_details", val_name, val_name_size)) {
+			chip->package_details = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 13);
+		} else if (0 == mem_cmpn_cstr("write_unlock", val_name, val_name_size)) {
+			chip->write_unlock = ustrh2u16(val, val_size);
+			smask |= (((uint32_t)1) << 14);
+		} else if (0 == mem_cmpn_cstr("fuses", val_name, val_name_size)) {
+			if (0 == mem_cmpn_cstr("NULL", val, val_size)) {
+				chip->fuses = NULL;
+			} else if (0 == mem_cmpn_cstr("avr_fuses", val, val_size)) {
+				chip->fuses = avr_fuses;
+			} else if (0 == mem_cmpn_cstr("avr2_fuses", val, val_size)) {
+				chip->fuses = avr2_fuses;
+			} else if (0 == mem_cmpn_cstr("avr3_fuses", val, val_size)) {
+				chip->fuses = avr3_fuses;
+			} else if (0 == mem_cmpn_cstr("pic_fuses", val, val_size)) {
+				chip->fuses = pic_fuses;
+			} else if (0 == mem_cmpn_cstr("pic2_fuses", val, val_size)) {
+				chip->fuses = pic2_fuses;
+			} else {
+				chip->fuses = NULL;
+				fprintf(stderr, "Unknown fuse value: \"%.*s\", line %zu.\n",
+				    (int)val_size, val, val_off);
+			}
+			smask |= (((uint32_t)1) << 15);
+		} else {
+			fprintf(stderr, "Unknown field: \"%.*s\", line %zu.\n",
+			    (int)val_name_size, val_name, val_off);
+		}
+		val_off ++;
+	}
+
+	if (((((uint32_t)1) << 16) - 1) != smask) {
+		fprintf(stderr, "Section: \"%.*s\", at line %zu does not contain all required fields.\n",
+		    (int)sect_name_size, sect_name, sect_off);
+		return (EINVAL);
+	}
+	
+	chip->name = zalloc((sect_name_size + sizeof(void*)));
+	if (NULL == chip->name)
+		return (ENOMEM);
+	memcpy((void*)chip->name, sect_name, sect_name_size);
+
+	return (0);
+}
+
+
+void
+chip_db_free(void) {
+	chip_p chip;
+
+	if (NULL == chips_db)
+		return;
+
+	for (chip = chips_db; NULL != chip->name; chip ++) {
+		free((void*)chip->name);
+	}
+	free(chips_db);
+	chips_db = NULL;
+}
+
+int
+chip_db_load(const char *file_name, size_t file_name_size) {
+	int error;
+	uint8_t *buf = NULL;
+	const uint8_t *sect_name;
+	size_t buf_size, sect_off, sect_name_size;
+	size_t cdb_allocated = 0, cdb_count = 0;
+	ini_p ini = NULL;
+
+	error = read_file(file_name, file_name_size, 0, 0, (1024 * 1024 * 1024) /* 1Gb */,
+	    &buf, &buf_size);
+	if (0 != error)
+		goto err_out;
+	error = ini_create(&ini);
+	if (0 != error)
+		goto err_out;
+	error = ini_buf_parse(ini, buf, buf_size);
+	if (0 != error)
+		goto err_out;
+	/* Load chips. */
+	sect_off = 0;
+	while (0 == ini_sect_enum(ini, &sect_off, &sect_name, &sect_name_size)) {
+		error = realloc_items((void**)&chips_db,
+		    sizeof(chip_t), &cdb_allocated,
+		    DB_CHIPS_PREALLOC, cdb_count);
+		if (0 != error) {
+			chip_db_free();
+			goto err_out;
+		}
+		if (0 == chip_db_parse(ini, sect_off, sect_name, sect_name_size,
+		    &chips_db[cdb_count])) {
+			cdb_count ++;
+		}
+		sect_off ++;
+	}
+
+err_out:
+	free(buf);
+	ini_destroy(ini);
+
+	return (error);
+}
 
 
 int
@@ -82,9 +243,9 @@ chip_p
 chip_db_get_by_id(const uint32_t chip_id, const uint8_t chip_id_size) {
 	chip_p chip;
 
-	if (0 == chip_id_size)
+	if (NULL == chips_db || 0 == chip_id_size)
 		return (NULL);
-	for (chip = chips_array; NULL != chip->name; chip ++) {
+	for (chip = chips_db; NULL != chip->name; chip ++) {
 		if (is_chip_id_eq(chip, chip_id, chip_id_size))
 			return (chip);
 	}
@@ -96,7 +257,9 @@ chip_p
 chip_db_get_by_name(const char *name) {
 	chip_p chip;
 
-	for (chip = chips_array; NULL != chip->name; chip ++) {
+	if (NULL == chips_db)
+		return (NULL);
+	for (chip = chips_db; NULL != chip->name; chip ++) {
 		if (!strcasecmp(name, chip->name))
 			return (chip);
 	}
@@ -109,10 +272,12 @@ chip_db_dump_flt(const char *name) {
 	chip_p chip;
 	size_t name_size = 0;
 
+	if (NULL == chips_db)
+		return;
 	if (NULL != name) {
 		name_size = strnlen(name, CHIP_NAME_MAX);
 	}
-	for (chip = chips_array; NULL != chip->name; chip ++) {
+	for (chip = chips_db; NULL != chip->name; chip ++) {
 		if (0 != name_size &&
 		    strncasecmp(chip->name, name, name_size))
 			continue;
@@ -183,7 +348,9 @@ void
 chip_db_dump_to_h(void) {
 	chip_p chip;
 
-	for (chip = chips_array; chip->name; chip ++) {
+	if (NULL == chips_db)
+		return;
+	for (chip = chips_db; chip->name; chip ++) {
 		printf("{\n");
 		printf("	.name = \"%s\",\n", chip->name);
 		printf("	.protocol_id = 0x%02x,\n", (0xffff & chip->protocol_id));
@@ -227,7 +394,9 @@ chip_db_dump_to_ini(void) {
 	char buf[4096];
 	size_t buf_used;
 
-	for (chip = chips_array; chip->name; chip ++) {
+	if (NULL == chips_db)
+		return;
+	for (chip = chips_db; chip->name; chip ++) {
 		buf_used = (size_t)snprintf(buf, sizeof(buf),
 		    "\n"
 		    "[%s]\n"

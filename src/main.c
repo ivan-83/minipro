@@ -52,6 +52,7 @@ typedef struct command_line_options_s {
 	size_t		size;
 	int		page;
 	uint8_t		icsp;
+	char 		*db_file_name;
 	int		chip_id_check_no_fail;
 	int		size_error;
 	int		size_error_no_warn;
@@ -75,6 +76,7 @@ static struct option lopts[] = {
 	{ "page",	required_argument,	NULL,	'c'	},
 	{ "icsp",	no_argument,		NULL,	'I'	},
 	{ "icsp-vcc",	no_argument,		NULL,	'i'	},
+	{ "db-file",	required_argument,	NULL,	'b'	},
 	{ "db-dump",	optional_argument,	NULL,	'l'	},
 	{ "chip-id-check-no-fail", no_argument,	NULL,	'y'	},
 	{ "no-size-error", no_argument,		NULL,	's'	},
@@ -101,6 +103,7 @@ static const char *lopts_descr[] = {
 	"					Possible values: code, data, config",
 	"			Use ICSP (without enabling Vcc)",
 	"			Use ICSP",
+	"<file_name>	chips database file name, default: "DB_FILE_DEF,
 	"			List all supported devices",
 	"	Do NOT error on ID mismatch",
 	"		Do NOT error on file size mismatch (only a warning)",
@@ -206,20 +209,23 @@ restart_opts:
 		case 14: /* icsp-vcc */
 			cmd_opts->icsp = (MP_ICSP_FLAG_ENABLE | MP_ICSP_FLAG_VCC);
 			break;
-		case 15: /* db-dump */
+		case 15: /* db-file */
+			cmd_opts->db_file_name = optarg;
+			break;
+		case 16: /* db-dump */
 			chip_db_dump_flt(optarg);
 			return (-1);
-		case 16: /* chip-id-check-no-fail */
+		case 17: /* chip-id-check-no-fail */
 			cmd_opts->chip_id_check_no_fail = 1;
 			break;
-		case 17: /* no-size-error */
+		case 18: /* no-size-error */
 			cmd_opts->size_error = 0;
 			break;
-		case 18: /* no-size-error-warn */
+		case 19: /* no-size-error-warn */
 			cmd_opts->size_error = 0;
 			cmd_opts->size_error_no_warn = 1;
 			break;
-		case 19: /* quiet */
+		case 20: /* quiet */
 			cmd_opts->quiet = 1;
 			break;
 		default:
@@ -280,6 +286,18 @@ main(int argc, char **argv) {
 		print_usage(argv[0]);
 		return (error);
 	}
+
+	/* Load chips database from file. */
+	printf("Chips DB loading...");
+	if (NULL == cmd_opts.db_file_name) {
+		cmd_opts.db_file_name = DB_FILE_DEF;
+	}
+	error = chip_db_load(cmd_opts.db_file_name, 0);
+	if (0 != error) {
+		LOG_ERR_FMT(error, "Fail on chips DB load: %s", cmd_opts.db_file_name);
+		return (error);
+	}
+	printf("done.\n");
 
 	/* Find chip. */
 	if (NULL != cmd_opts.chip_name) { /* By name. */
@@ -523,6 +541,7 @@ err_out:
 	free(chip_data);
 	free(file_data);
 	minipro_close(mp);
+	chip_db_free();
 
 	return (error);
 }
