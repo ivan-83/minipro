@@ -12,21 +12,9 @@ Autoelectric (http://www.autoelectric.cn/)
 * Overcurrent protection
 * System testing
 
-## Synopsis
-
-```
-$ minipro -p ATMEGA48 -w atmega48.bin
-$ minipro -p ATMEGA48 -r atmega48.bin
-```
-
 ## Prerequisites
 
-You'll need some sort of Linux machine.  Other Unices may work, though 
-that is untested.  You will need version 1.0.16 or greater of libusb. 
-Debian 7 (Wheezy) users should do this to make sure you get the right 
-version:
-
-```sudo apt-get -t wheezy-backports libusb-1.0-0-dev```
+You'll need some sort of Linux or BSD machine.
 
 ## Compilation and Installation
 ```
