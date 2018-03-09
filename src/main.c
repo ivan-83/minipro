@@ -41,19 +41,20 @@
 
 typedef struct command_line_options_s {
 	int		action;
-	char 		*file_name;
+	const char	*file_name;
 	uint32_t	write_flags;
 	int		post_wr_verify;
 	off_t		file_offset;
-	char		*chip_name;
+	const char	*chip_name;
 	uint32_t	chip_id;
 	uint8_t		chip_id_size;
 	uint32_t	address;
 	size_t		size;
 	int		page;
 	uint8_t		icsp;
-	char 		*db_file_name;
+	const char	*db_file_name;
 	int		chip_id_check_no_fail;
+	int		chip_id_check_disable;
 	int		size_error;
 	int		size_error_no_warn;
 	int		quiet;
@@ -79,6 +80,7 @@ static struct option lopts[] = {
 	{ "db-file",	required_argument,	NULL,	'b'	},
 	{ "db-dump",	optional_argument,	NULL,	'l'	},
 	{ "chip-id-check-no-fail", no_argument,	NULL,	'y'	},
+	{ "chip-id-check-disable", no_argument,	NULL,	'f'	},
 	{ "no-size-error", no_argument,		NULL,	's'	},
 	{ "no-size-error-warn", no_argument,	NULL,	'S'	},
 	{ "quiet",	no_argument,		NULL,	0	},
@@ -105,7 +107,8 @@ static const char *lopts_descr[] = {
 	"			Use ICSP",
 	"<file_name>	chips database file name, default: "DB_FILE_DEF,
 	"			List all supported devices",
-	"	Do NOT error on ID mismatch",
+	"	Do NOT error on chip ID mismatch",
+	"	Disable all chip ID checks and reading",
 	"		Do NOT error on file size mismatch (only a warning)",
 	"	No warning message for file size mismatch (can't combine with -s)",
 	"				Less verboce",
@@ -218,14 +221,17 @@ restart_opts:
 		case 17: /* chip-id-check-no-fail */
 			cmd_opts->chip_id_check_no_fail = 1;
 			break;
-		case 18: /* no-size-error */
+		case 18: /* chip-id-check-disable */
+			cmd_opts->chip_id_check_disable = 1;
+			break;
+		case 19: /* no-size-error */
 			cmd_opts->size_error = 0;
 			break;
-		case 19: /* no-size-error-warn */
+		case 20: /* no-size-error-warn */
 			cmd_opts->size_error = 0;
 			cmd_opts->size_error_no_warn = 1;
 			break;
-		case 20: /* quiet */
+		case 21: /* quiet */
 			cmd_opts->quiet = 1;
 			break;
 		default:
@@ -407,7 +413,8 @@ main(int argc, char **argv) {
 		goto err_out;
 
 	/* Verify Chip ID (if applicable). */
-	if (chip->chip_id_size &&
+	if (0 == cmd_opts.chip_id_check_disable &&
+	    chip->chip_id_size &&
 	    chip->chip_id) {
 		error = minipro_get_chip_id(mp, &chip_id, &chip_id_size);
 		if (0 != error) {
