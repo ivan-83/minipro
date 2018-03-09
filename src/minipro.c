@@ -427,6 +427,13 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	mp->chip = NULL;
 	if (NULL == chip)
 		return (0);
+	if (0 == chip->read_block_size ||
+	    0 == chip->write_block_size) {
+		MP_LOG_ERR_FMT(EINVAL, "Cant handle this chip: read_block_size = %i, write_block_size = %i, zero size not allowed.",
+		    chip->read_block_size,
+		    chip->write_block_size);
+		return (EINVAL);
+	}
 	if ((sizeof(mp->msg) - 7) < chip->read_block_size ||
 	    (sizeof(mp->msg) - 7) < chip->write_block_size) {
 		MP_LOG_ERR_FMT(EINVAL, "Cant handle this chip: increase msg_hdr[%zu] buf to %i and recompile.",
