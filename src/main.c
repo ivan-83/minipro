@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <errno.h>
 
+#include "utils/macro.h"
 #include "utils/strh2num.h"
 #include "utils/sys.h"
 #include "minipro.h"
