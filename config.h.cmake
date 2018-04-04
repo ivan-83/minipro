@@ -5,21 +5,11 @@
 /*--------------------------------------------------------------------*/
 /* API, macros, includes. */
 
-/* Includes. */
-#cmakedefine HAVE_SYS_TYPES_H		1
-#cmakedefine HAVE_SYS_TIME_H		1
-
 /* API */
-#cmakedefine HAVE_MEMSET_S		1
-#cmakedefine HAVE_EXPLICIT_BZERO	1
 #cmakedefine HAVE_MEMRCHR		1
 #cmakedefine HAVE_MEMMEM		1
 #cmakedefine HAVE_STRNCASECMP		1
 #cmakedefine HAVE_REALLOCARRAY		1
-
-/* Macros. */
-#cmakedefine HAVE_PATH_MAX		1
-#cmakedefine HAVE_MAXPATHLEN		1
 
 
 /*--------------------------------------------------------------------*/
