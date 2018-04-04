@@ -27,7 +27,7 @@ You'll need some sort of Linux or BSD machine.
 
 ## Compilation and Installation
 ```
-sudo apt-get install build-essential git cmake fakeroot dpkg-dev libusb-1.0-0-dev
+sudo apt-get install build-essential git cmake pkgconf fakeroot dpkg-dev libusb-1.0-0-dev
 git clone --recursive https://github.com/rozhuk-im/minipro.git
 cd minipro
 mkdir build
