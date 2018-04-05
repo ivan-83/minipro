@@ -33,6 +33,6 @@ cd minipro
 mkdir build
 cd build
 cmake ..
-make
+make -j
 ```
 
