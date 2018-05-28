@@ -3,31 +3,30 @@
 #
 
 ############################# INITIAL SECTION ##########################
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
-PROJECT(minipro C)
+project(minipro C)
 
-SET(PACKAGE_VERSION_MAJOR	1)
-SET(PACKAGE_VERSION_MINOR	2)
-SET(PACKAGE_VERSION_PATCH	0)
+set(PACKAGE_VERSION_MAJOR	1)
+set(PACKAGE_VERSION_MINOR	2)
+set(PACKAGE_VERSION_PATCH	0)
 
-SET(PACKAGE_NAME		"${PROJECT_NAME}")
-SET(PACKAGE_VERSION		"${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}.${PACKAGE_VERSION_PATCH}")
-SET(PACKAGE_URL			"https://github.com/rozhuk-im/minipro")
-SET(PACKAGE_BUGREPORT		"https://github.com/rozhuk-im/minipro")
-SET(PACKAGE_STRING 		"${PACKAGE_NAME} ${PACKAGE_VERSION}")
-SET(PACKAGE_DESCRIPTION		"A free and open TL866XX programmer")
-SET(PACKAGE_TARNAME		"${PACKAGE_NAME}-${PACKAGE_VERSION}")
+set(PACKAGE_NAME		"${PROJECT_NAME}")
+set(PACKAGE_VERSION		"${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}.${PACKAGE_VERSION_PATCH}")
+set(PACKAGE_URL			"https://github.com/rozhuk-im/minipro")
+set(PACKAGE_BUGREPORT		"https://github.com/rozhuk-im/minipro")
+set(PACKAGE_STRING 		"${PACKAGE_NAME} ${PACKAGE_VERSION}")
+set(PACKAGE_DESCRIPTION		"A free and open TL866XX programmer")
+set(PACKAGE_TARNAME		"${PACKAGE_NAME}-${PACKAGE_VERSION}")
 
 ############################# OPTIONS SECTION ##########################
 
-OPTION(ENABLE_OPTIMIZATION	"Enable extra optimizations [default: OFF]"		OFF)
-OPTION(ENABLE_COVERAGE		"Build with code coverage options [default: OFF]"	OFF)
-OPTION(ENABLE_FULL_DEBUG	"Build with all possible debug [default: OFF]"		OFF)
+option(ENABLE_COVERAGE		"Build with code coverage options [default: OFF]"	OFF)
+option(ENABLE_FULL_DEBUG	"Build with all possible debug [default: OFF]"		OFF)
 
 # Now CMAKE_INSTALL_PREFIX is a base prefix for everything
 IF(NOT SHARE_DIR)
-	SET(SHARE_DIR "${CMAKE_INSTALL_PREFIX}/share/minipro")
+	set(SHARE_DIR "${CMAKE_INSTALL_PREFIX}/share/minipro")
 ENDIF()
 
 ############################# INCLUDE SECTION ##########################
@@ -35,170 +34,158 @@ ENDIF()
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckCCompilerFlag)
 
-FIND_PACKAGE(PkgConfig REQUIRED)
-PKG_SEARCH_MODULE(LIBUSB1 REQUIRED libusb-1.0)
-INCLUDE_DIRECTORIES(SYSTEM ${LIBUSB1_INCLUDE_DIRS})
-LIST(APPEND CMAKE_REQUIRED_LIBRARIES ${LIBUSB1_LIBRARIES})
+find_package(PkgConfig REQUIRED)
+pkg_search_module(LIBUSB1 REQUIRED libusb-1.0)
+include_directories(SYSTEM ${LIBUSB1_INCLUDE_DIRS})
+list(APPEND CMAKE_REQUIRED_LIBRARIES ${LIBUSB1_LIBRARIES})
 
 ############################# MACRO SECTION ############################
+macro(try_c_flag prop flag)
+	# Try flag once on the C compiler
+	check_c_compiler_flag("-Werror ${flag}" C_FLAG_${prop})
+	if (C_FLAG_${prop})
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
+	endif()
+endmacro()
 
+macro(try_linker_flag prop flag)
+	# Check with the C compiler
+	set(CMAKE_REQUIRED_FLAGS ${flag})
+	check_c_compiler_flag(${flag} LINKER_FLAG_${prop})
+	set(CMAKE_REQUIRED_FLAGS "")
+	if (LINKER_FLAG_${prop})
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${flag}")
+		set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${flag}")
+	endif()
+endmacro()
 
 ############################# CONFIG SECTION ###########################
 
 # Prefer local include dirs to system ones.
-INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/"
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/"
 		"${CMAKE_CURRENT_SOURCE_DIR}/src"
 		"${CMAKE_CURRENT_SOURCE_DIR}/src/liblcb/include"
 		"${CMAKE_BINARY_DIR}/src")
 
-SET(TAR "tar")
+set(TAR "tar")
 
 # Platform specific configuration.
-IF(CMAKE_SYSTEM_NAME MATCHES "^.*BSD$|DragonFly")
-	ADD_DEFINITIONS(-DFREEBSD -D_BSD_SOURCE)
-	MESSAGE(STATUS "Configuring for BSD system")
-	SET(TAR "gtar")
-ENDIF()
+if (CMAKE_SYSTEM_NAME MATCHES "^.*BSD$|DragonFly")
+	add_definitions(-D_BSD_SOURCE -DFREEBSD)
+	message(STATUS "Configuring for BSD system")
+	include_directories("/usr/local/include/")
+	set(TAR "gtar")
+endif()
 
-IF(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_BSD_SOURCE -DDARWIN")
-	MESSAGE(STATUS "Configuring for Darwin")
-	SET(TAR "gnutar")
-	SET(CMAKE_FIND_FRAMEWORK "NEVER")
-ENDIF()
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+	add_definitions(-D_BSD_SOURCE -DDARWIN)
+	message(STATUS "Configuring for Darwin")
+	set(TAR "gnutar")
+endif()
 
 
-IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -D__USE_GNU=1")
-	ADD_DEFINITIONS(-D_GNU_SOURCE -DLINUX)
-	ADD_DEFINITIONS(-D__USE_GNU=1)
-	IF(BUILD_CPU_MODE STREQUAL "32")
-		ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE)
-	ENDIF()
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	add_definitions(-D_GNU_SOURCE -DLINUX -D__USE_GNU=1)
+	message(STATUS "Configuring for Linux")
+	if (BUILD_CPU_MODE STREQUAL "32")
+		add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE)
+	endif()
 
-	LIST(APPEND CMAKE_REQUIRED_LIBRARIES rt)
-ENDIF()
+	list(APPEND CMAKE_REQUIRED_LIBRARIES rt)
+endif()
 
+
+try_c_flag(PIPE "-pipe")
 
 # Process with warn flags.
-SET(CMAKE_C_WARN_FLAGS "")
-IF(NOT CMAKE_C_OPT_FLAGS AND ENABLE_FULL_DEBUG)
-	CHECK_C_COMPILER_FLAG(-W			SUPPORT_W)
-	CHECK_C_COMPILER_FLAG(-Wall			SUPPORT_WALL)
-	CHECK_C_COMPILER_FLAG(-Wpointer-arith		SUPPORT_WPOINTER)
-	CHECK_C_COMPILER_FLAG(-Wno-unused-parameter	SUPPORT_WPARAM)
-	CHECK_C_COMPILER_FLAG(-Wno-unused-function	SUPPORT_WFUNCTION)
-	CHECK_C_COMPILER_FLAG(-Wunused-variable		SUPPORT_WUNUSED_VAR)
-	CHECK_C_COMPILER_FLAG(-Wno-pointer-sign		SUPPORT_WPOINTER_SIGN)
-	CHECK_C_COMPILER_FLAG(-Wno-sign-compare		SUPPORT_WSIGN_COMPARE)
-	CHECK_C_COMPILER_FLAG(-Wstrict-prototypes	SUPPORT_WSTRICT_PROTOTYPES)
-	CHECK_C_COMPILER_FLAG(-pedantic			SUPPORT_PEDANTIC_FLAG)
-	CHECK_C_COMPILER_FLAG(-Wno-unused-const-variable SUPPORT_WNO_UNUSED_CONST)
-	# GCC 6 specific.
-	CHECK_C_COMPILER_FLAG(-Wnull-dereference	SUPPORT_WNULL_DEREFERENCE)
-	CHECK_C_COMPILER_FLAG(-Wduplicated-cond		SUPPORT_WDUPLICATED_COND)
-	# GCC 7 specific.
-	CHECK_C_COMPILER_FLAG(-Wimplicit-fallthrough	SUPPORT_WIMPLICIT_FALLTHROUGH)
+if (NOT CMAKE_C_OPT_FLAGS AND ENABLE_FULL_DEBUG)
+	try_c_flag(W			"-W")
+	try_c_flag(WALL			"-Wall")
+	try_c_flag(WPOINTER		"-Wpointer-arith")
+	try_c_flag(WPARAM		"-Wno-unused-parameter")
+	try_c_flag(WFUNCTION		"-Wno-unused-function")
+	try_c_flag(WUNUSED_VAR		"-Wno-unused-variable")
+	try_c_flag(WPOINTER_SIGN	"-Wno-pointer-sign")
+	try_c_flag(WSIGN_COMPARE	"-Wno-sign-compare")
+	try_c_flag(WSTRICT_PROTOTYPES	"-Wstrict-prototypes")
+	try_c_flag(PEDANTIC		"-pedantic")
+	try_c_flag(WNO_UNUSED_CONST	"-Wno-unused-const-variable")
+	try_c_flag(WNULL_DEREFERENCE	"-Wnull-dereference")
+	try_c_flag(WDUPLICATED_COND	"-Wduplicated-cond")
+	try_c_flag(WIMPLICIT_FALLTHROUGH "-Wimplicit-fallthrough")
+endif()
 
-	IF(SUPPORT_W)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -W")
-	ENDIF()
-	IF(SUPPORT_WALL)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wall")
-	ENDIF()
-	IF(SUPPORT_WPOINTER)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wpointer-arith")
-	ENDIF()
-	IF(SUPPORT_WPARAM)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wno-unused-parameter")
-	ENDIF()
-	IF(SUPPORT_WFUNCTION)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wno-unused-function")
-	ENDIF()
-	IF(SUPPORT_WUNUSED_VAR)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wunused-variable")
-	ENDIF()
-	IF(SUPPORT_WPOINTER_SIGN)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wno-pointer-sign")
-	ENDIF()
-	IF(SUPPORT_WSTRICT_PROTOTYPES)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wstrict-prototypes")
-	ENDIF()
-	IF(SUPPORT_PEDANTIC_FLAG)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -pedantic")
-	ENDIF()
-	IF(SUPPORT_WNULL_DEREFERENCE)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wnull-dereference")
-	ENDIF()
-	IF(SUPPORT_WDUPLICATED_COND)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wduplicated-cond")
-	ENDIF()
-	IF(SUPPORT_WLOGICAL_OP)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wlogical-op")
-	ENDIF()
-	IF(SUPPORT_WNO_UNUSED_CONST)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wno-unused-const-variable")
-	ENDIF()
-	IF(SUPPORT_WSIGN_COMPARE)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wno-sign-compare")
-	ENDIF()
-	IF(SUPPORT_WIMPLICIT_FALLTHROUGH)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -Wno-implicit-fallthrough")
-	ENDIF()
-ENDIF()
+if (NOT "${CMAKE_C_COMPILER_ID}" MATCHES SunPro)
+	try_c_flag(STD11		"-std=c11")
+	if (NOT C_FLAG_STD11)
+		try_c_flag(STD99	"-std=c99")
+	endif()
+endif()
 
-IF(NOT "${CMAKE_C_COMPILER_ID}" MATCHES SunPro)
-	CHECK_C_COMPILER_FLAG("-std=c11"	SUPPORT_STD11_FLAG)
-	IF(SUPPORT_STD11_FLAG)
-		SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -std=c11")
-	ELSE()
-		CHECK_C_COMPILER_FLAG("-std=c99"	SUPPORT_STD99_FLAG)
-		IF(SUPPORT_STD99_FLAG)
-			SET(CMAKE_C_WARN_FLAGS "${CMAKE_C_WARN_FLAGS} -std=c99")
-		ENDIF()
-	ENDIF()
-ENDIF()
 
-CHECK_C_COMPILER_FLAG(-fPIC			SUPPORT_FPIC)
-IF(SUPPORT_FPIC)
-	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-ENDIF()
+# Hardening flags
+try_c_flag(FORTIFY_SOURCE2		"-D_FORTIFY_SOURCE=2")
+try_c_flag(FSTACK_PROTECTOR_ALL		"-fstack-protector-all")
+try_c_flag(FSANITIZE_SAFE_STACK		"-fsanitize=safe-stack")
+try_c_flag(FSANITIZE_CFI		"-fsanitize=cfi")
+try_c_flag(MRETPOLINE			"-mretpoline")
+try_c_flag(MFUNCTION_RETURN		"-mfunction-return=thunk")
+try_c_flag(MINDIRECT_BRANCH		"-mindirect-branch=thunk")
+try_c_flag(FWRAPV			"-fwrapv")
+try_c_flag(FPIE				"-fPIE")
+try_linker_flag(PIE			"-pie")
+try_linker_flag(RETPOLINEPLT		"-Wl,-z,retpolineplt")
+try_linker_flag(ZRELRO			"-Wl,-z,relro")
+try_linker_flag(ZNOW			"-Wl,-z,now")
+try_linker_flag(ZNOEXECSTACK		"-Wl,-z,noexecstack")
+
 
 # Optimization flags
-IF(NOT CMAKE_C_OPT_FLAGS)
-	IF(ENABLE_FULL_DEBUG)
-		SET(CMAKE_C_OPT_FLAGS "-g -O0 -fstrict-aliasing")
-	ELSE()
-		SET(CMAKE_C_OPT_FLAGS "-g -O2 -fstrict-aliasing")
-	ENDIF()
-ENDIF()
+if (ENABLE_COVERAGE)
+	set(CMAKE_C_OPT_FLAGS "-g -O0 -fno-strict-aliasing")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+else()
+	if (NOT CMAKE_C_OPT_FLAGS)
+		if (ENABLE_FULL_DEBUG)
+			set(CMAKE_C_OPT_FLAGS "-g -O0 -fstrict-aliasing")
+		else()
+			set(CMAKE_C_OPT_FLAGS "-g -O2 -fstrict-aliasing")
+		endif()
+	endif()
+endif()
 
-IF(ENABLE_COVERAGE)
-	SET(CMAKE_C_OPT_FLAGS "-g -O0 -fno-strict-aliasing")
-	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
-	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
-ENDIF()
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_OPT_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_C_WARN_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_OPT_FLAGS} ${CMAKE_C_FLAGS}")
+# Silently strip whitespace
+string(STRIP "${CMAKE_C_FLAGS}" CMAKE_C_FLAGS)
+string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
+string(STRIP "${CMAKE_MODULE_LINKER_FLAGS}" CMAKE_MODULE_LINKER_FLAGS)
+string(STRIP "${CMAKE_SHARED_LINKER_FLAGS}" CMAKE_SHARED_LINKER_FLAGS)
+
+
+# Check platform specific includes.
+#check_include_files(sys/types.h		HAVE_SYS_TYPES_H)
 
 # Check platform API.
-CHECK_FUNCTION_EXISTS(memset_s			HAVE_MEMSET_S)
-CHECK_FUNCTION_EXISTS(explicit_bzero		HAVE_EXPLICIT_BZERO)
-CHECK_FUNCTION_EXISTS(memrchr			HAVE_MEMRCHR)
-CHECK_FUNCTION_EXISTS(memmem			HAVE_MEMMEM)
-CHECK_FUNCTION_EXISTS(strncasecmp		HAVE_STRNCASECMP)
-CHECK_FUNCTION_EXISTS(reallocarray		HAVE_REALLOCARRAY)
+check_function_exists(memset_s			HAVE_MEMSET_S)
+check_function_exists(explicit_bzero		HAVE_EXPLICIT_BZERO)
+check_function_exists(memrchr			HAVE_MEMRCHR)
+check_function_exists(memmem			HAVE_MEMMEM)
+check_function_exists(strncasecmp		HAVE_STRNCASECMP)
+check_function_exists(reallocarray		HAVE_REALLOCARRAY)
 
-CONFIGURE_FILE(config.h.cmake src/config.h)
-ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+configure_file(config.h.cmake src/config.h)
+add_definitions(-DHAVE_CONFIG_H)
 
 ################################ SUBDIRS SECTION #######################
 
-ADD_SUBDIRECTORY(src)
+add_subdirectory(src)
 
 ############################ TARGETS SECTION ###########################
 
-ADD_CUSTOM_TARGET(dist ${CMAKE_SOURCE_DIR}/dist.sh
+add_custom_target(dist ${CMAKE_SOURCE_DIR}/dist.sh
 	"${CMAKE_BINARY_DIR}/minipro-${MINIPRO_VERSION}.tar.xz" "${TAR}"
 	COMMENT "Create source distribution"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -206,5 +193,5 @@ ADD_CUSTOM_TARGET(dist ${CMAKE_SOURCE_DIR}/dist.sh
 ##################### INSTALLATION #####################################
 
 # Text files
-INSTALL(FILES "minipro_db.ini" DESTINATION ${SHARE_DIR})
-INSTALL(FILES "README.md" DESTINATION ${SHARE_DIR})
+install(FILES "minipro_db.ini" DESTINATION ${SHARE_DIR})
+install(FILES "README.md" DESTINATION ${SHARE_DIR})
