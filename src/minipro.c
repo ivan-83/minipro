@@ -407,7 +407,7 @@ minipro_print_info(minipro_p mp) {
 	    dev_ver_str,
 	    mp->ver.hardware_version, mp->ver.firmware_version_major,
 	    mp->ver.firmware_version_minor,
-	    ((MP_FW_VER_MIN > ((mp->ver.firmware_version_major << 8) | mp->ver.firmware_version_minor)) ? " (too old)" : ""),
+	    ((MP_FW_VER_MIN > ((mp->ver.firmware_version_major << 8) | mp->ver.firmware_version_minor)) ? " (newer fw avaible)" : ""),
 	    (int)sizeof(mp->ver.device_code), mp->ver.device_code,
 	    (int)sizeof(mp->ver.serial_num), mp->ver.serial_num,
 	    mp->ver.device_status);
@@ -629,6 +629,8 @@ minipro_read_fuses(minipro_p mp, uint8_t cmd,
 	mp->msg[5] = 0x10;
 	MP_RET_ON_ERR(msg_send(mp, mp->msg, 18, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == (7 + buf_size) */
+	if ((7 + buf_size) > rcvd)
+		return (EMSGSIZE);
 	memcpy(buf, &mp->msg[7], buf_size);
 
 	return (0);
