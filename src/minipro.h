@@ -1,9 +1,6 @@
 #ifndef __MINIPRO_H
 #define __MINIPRO_H
 
-/* This header is only containing the low-level wrappers against typical requests.
- * Please refer main.c if you're looking for a higher-level logic. */
-
 #include <sys/types.h>
 #include <inttypes.h>
 
@@ -13,7 +10,7 @@
 #define MP_TL866_VID		0x04d8
 #define MP_TL866_PID		0xe11c
 
-#define MP_FW_VER_MIN		0x023d
+#define MP_FW_VER_MIN		0x0255
 
 
 /* Commands. */
@@ -28,6 +25,7 @@ typedef struct minipro_version_info_s {
 	uint8_t		device_code[8];
 	uint8_t		serial_num[24];
 	uint8_t		hardware_version;
+	/* Since fw 6.71 (0x0252) there is 4 bytes pad here. */
 } __attribute__((__packed__)) minipro_ver_t, *minipro_ver_p;
 #define MP_DEV_VER_TL866_UNKNOWN	0
 #define MP_DEV_VER_TL866A		1
