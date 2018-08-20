@@ -3,6 +3,7 @@
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h> /* snprintf, fprintf */
 #include <string.h>
+#include <time.h>
 #include <errno.h>
 #include <libusb.h>
 
@@ -39,6 +40,11 @@ static const uint8_t mp_chip_page_write_cmd[] = {
 	0
 };
 
+
+#define MP_LOG_TEXT(__text)						\
+	if (0 != mp->verboce) {						\
+		fprintf(stdout, "%s\n",	(__text));			\
+	}
 
 #define MP_LOG_ERR(__error, __descr)					\
 	if (0 != (__error) && 0 != mp->verboce)				\
@@ -464,6 +470,8 @@ minipro_print_info(minipro_p mp) {
 
 int
 minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
+	int error;
+	uint8_t tsop48;
 
 	if (NULL == mp)
 		return (EINVAL);
@@ -489,7 +497,33 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 		    (7 + MAX(chip->read_block_size, chip->write_block_size)));
 		return (EINVAL);
 	}
+
 	/* Set new. */
+
+	/* Unlocking the TSOP48 adapter (if applicable). */
+	if (chip->opts4 == 0x1002078) {
+		error = minipro_unlock_tsop48(mp, &tsop48);
+		if (0 != error) {
+			MP_LOG_ERR(error, "Cant unlock TSOP48.");
+			return (error);
+		}
+		switch (tsop48) {
+		case MP_TSOP48_TYPE_V3:
+			MP_LOG_TEXT("Found TSOP adapter V3.");
+			break;
+		case MP_TSOP48_TYPE_NONE:
+			MP_LOG_ERR(EINVAL, "TSOP adapter not found!");
+			return (EINVAL);
+		case MP_TSOP48_TYPE_V2:
+			MP_LOG_TEXT("Found TSOP adapter V0.");
+			break;
+		case MP_TSOP48_TYPE_FAKE1:
+		case MP_TSOP48_TYPE_FAKE2:
+			MP_LOG_TEXT("Fake TSOP adapter found!");
+			break;
+		}
+	}
+
 	mp->read_block_buf = malloc((chip->read_block_size + 16));
 	mp->write_block_buf = malloc((chip->write_block_size + 16));
 	if (NULL == mp->read_block_buf ||
@@ -583,6 +617,44 @@ minipro_protect_set(minipro_p mp, int val) {
 err_out:
 	minipro_end_transaction(mp);
 	return (error);
+}
+
+int
+minipro_unlock_tsop48(minipro_p mp, uint8_t *type) {
+	int error;
+	uint16_t crc = 0;
+	size_t i, rcvd;
+	struct timespec st;
+
+	if (NULL == mp || NULL == mp->chip || NULL == type)
+		return (EINVAL);
+	error = clock_gettime(CLOCK_MONOTONIC, &st);
+	if (0 != error)
+		return (error);
+	msg_chip_hdr_set(mp, MP_CMD_UNLOCK_TSOP48, 17);
+	/* Set "random" data. */
+	U32TO8_LITTLE((uint32_t)st.tv_nsec, &mp->msg[7]);
+	U32TO8_LITTLE((uint32_t)st.tv_sec, &mp->msg[11]);
+	/* Calc CRC16. */
+	for (i = 7; i < 15; i ++) {
+		crc  = (crc >> 8) | (uint16_t)(crc << 8);
+		crc ^= mp->msg[i];
+		crc ^= (crc & 0xff) >> 4;
+		crc ^= (crc << 12);
+		crc ^= ((crc & 0xff) << 5);
+	}
+	/* More data pack. */
+	mp->msg[15] = mp->msg[9];
+	mp->msg[16] = mp->msg[11];
+	mp->msg[9] = (uint8_t)crc;
+	mp->msg[11] = (uint8_t)(crc >> 8);
+	MP_RET_ON_ERR(msg_send(mp, mp->msg, 17, NULL));
+	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == 17 */
+	if (2 > rcvd)
+		return (EMSGSIZE);
+	(*type) = mp->msg[1];
+
+	return (0);
 }
 
 int

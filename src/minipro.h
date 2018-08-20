@@ -36,7 +36,6 @@ static const char *minipro_dev_ver_str[] = {
 	"TL866CS",
 	NULL
 };
-
 #define MP_DEV_VER_STATUS_NORMAL	1
 #define MP_DEV_VER_STATUS_BOOTLOADER	2
 
@@ -71,6 +70,12 @@ typedef struct minipro_dumper_info_s {
 #define MP_CMD_SET_SHIFTREG	0x85
 #define MP_CMD_WRITE_COMMAND	0xaa
 #define MP_CMD_ERASE_COMMAND	0xcc
+#define MP_CMD_UNLOCK_TSOP48	0xfd
+#define		MP_TSOP48_TYPE_V3	0x00
+#define		MP_TSOP48_TYPE_NONE	0x01
+#define		MP_TSOP48_TYPE_V2	0x02
+#define		MP_TSOP48_TYPE_FAKE1	0x03
+#define		MP_TSOP48_TYPE_FAKE2	0x04
 #define MP_CMD_REQ_STATUS	0xfe
 #define MP_CMD_RESET_COMMAND	0xff
 
@@ -105,6 +110,8 @@ int	minipro_get_chip_id(minipro_p mp, uint32_t *chip_id, uint8_t *chip_id_size);
 int	minipro_prepare_writing(minipro_p mp);
 
 int	minipro_protect_set(minipro_p mp, int val);
+
+int	minipro_unlock_tsop48(minipro_p mp, uint8_t *type);
 
 int	minipro_get_status(minipro_p mp, uint16_t *status);
 
