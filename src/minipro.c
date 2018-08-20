@@ -47,23 +47,26 @@ static const uint8_t mp_chip_page_write_cmd[] = {
 	}
 
 #define MP_LOG_ERR(__error, __descr)					\
-	if (0 != (__error) && 0 != mp->verboce)				\
+	if (0 != (__error) && 0 != mp->verboce) {			\
 		fprintf(stderr, "%s:%i %s: error: %i - %s: %s\n",	\
 		    __FILE__, __LINE__, __FUNCTION__,			\
-		    (__error), strerror((__error)), (__descr))
+		    (__error), strerror((__error)), (__descr));		\
+	}
 
 #define MP_LOG_USB_ERR(__error, __descr)				\
-	if (0 != (__error) && 0 != mp->verboce)				\
+	if (0 != (__error) && 0 != mp->verboce) {			\
 		fprintf(stderr, "%s:%i %s: error: %i = %s - %s: %s\n",	\
 		    __FILE__, __LINE__, __FUNCTION__, (__error),	\
 		    libusb_error_name((__error)),			\
-		    libusb_strerror((__error)), (__descr))
+		    libusb_strerror((__error)), (__descr));		\
+	}
 
 #define MP_LOG_ERR_FMT(__error, __fmt, args...)				\
-	if (0 != (__error) && 0 != mp->verboce)				\
+	if (0 != (__error) && 0 != mp->verboce) {			\
 		fprintf(stderr, "%s:%i %s: error: %i - %s: " __fmt "\n", \
 		    __FILE__, __LINE__, __FUNCTION__,			\
-		    (__error), strerror((__error)), ##args)
+		    (__error), strerror((__error)), ##args);		\
+	}
 
 #define MP_RET_ON_ERR(__error) {					\
 	int ret_error = (__error);					\
@@ -86,8 +89,9 @@ static const uint8_t mp_chip_page_write_cmd[] = {
 }
 
 #define MP_PROGRESS_UPDATE(__cb, __mp, __done, __total, __udata)	\
-	if (NULL != (__cb))						\
-		(__cb)((__mp), (__done), (__total), (__udata))
+	if (NULL != (__cb)) {						\
+		(__cb)((__mp), (__done), (__total), (__udata));		\
+	}
 
 
 
