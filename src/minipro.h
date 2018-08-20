@@ -37,6 +37,10 @@ static const char *minipro_dev_ver_str[] = {
 	NULL
 };
 
+#define MP_DEV_VER_STATUS_NORMAL	1
+#define MP_DEV_VER_STATUS_BOOTLOADER	2
+
+
 #define MP_CMD_READ_FLASH	0x01
 #define MP_CMD_WRITE_BOOTLOADER	0x02
 #define MP_CMD_WRITE_CONFIG	0x03
@@ -87,12 +91,13 @@ int	minipro_open(uint16_t vendor_id, uint16_t product_id,
 	    int verboce, minipro_p *handle_ret);
 void	minipro_close(minipro_p mp);
 
+int	minipro_get_version_info(minipro_p mp, minipro_ver_p ver);
+int	minipro_is_version_info_ok(minipro_p mp);
 void	minipro_print_info(minipro_p mp);
 
 int	minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp);
 chip_p	minipro_chip_get(minipro_p mp);
 
-int	minipro_get_version_info(minipro_p mp, minipro_ver_p ver);
 int	minipro_begin_transaction(minipro_p mp);
 int	minipro_end_transaction(minipro_p mp);
 int	minipro_get_chip_id(minipro_p mp, uint32_t *chip_id, uint8_t *chip_id_size);

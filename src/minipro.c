@@ -354,17 +354,6 @@ minipro_open(uint16_t vendor_id, uint16_t product_id,
 		goto err_out;
 	}
 
-	/* Protocol version check. */
-	switch (mp->ver.device_status) {
-	case 1:
-	case 2:
-		break;
-	default:
-		error = EPROTONOSUPPORT;
-		MP_LOG_ERR_FMT(error, "Protocol version unknown: %i.",
-		    mp->ver.device_status);
-	}
-
 	(*handle_ret) = mp;
 
 	return (0);
@@ -384,6 +373,53 @@ minipro_close(minipro_p mp) {
 	free(mp->read_block_buf);
 	free(mp->write_block_buf);
 	free(mp);
+}
+
+int
+minipro_get_version_info(minipro_p mp, minipro_ver_p ver) {
+	size_t rcvd;
+
+	if (NULL == mp || NULL == ver)
+		return (EINVAL);
+	memset(ver, 0x00, sizeof(minipro_ver_t));
+	msg_init(mp, MP_CMD_GET_VERSION, 5);
+	MP_RET_ON_ERR(msg_send(mp, mp->msg, 5, NULL));
+	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
+	if ((sizeof(minipro_ver_t) - 1) > rcvd) { /* In boot mode returned 39 bytes. */
+		MP_LOG_ERR_FMT(EMSGSIZE,
+		    "expected at least %zu bytes but %zu bytes received.",
+		    (sizeof(minipro_ver_t) - 1), rcvd);
+		return (EMSGSIZE);
+	}
+	memcpy(ver, mp->msg, MIN(rcvd, sizeof(minipro_ver_t)));
+
+	return (0);
+}
+
+int
+minipro_is_version_info_ok(minipro_p mp) {
+
+	if (NULL == mp)
+		return (EINVAL);
+
+	/* Model/dev ver preprocess. */
+	switch (mp->ver.device_version) {
+	case MP_DEV_VER_TL866A:
+	case MP_DEV_VER_TL866CS:
+		break;
+	default:
+		return (EBADMSG);
+	}
+
+	/* Device status. */
+	switch (mp->ver.device_status) {
+	case MP_DEV_VER_STATUS_NORMAL:
+		break;
+	default:
+		return (EPROTONOSUPPORT);
+	}
+
+	return (0);
 }
 
 void
@@ -411,6 +447,18 @@ minipro_print_info(minipro_p mp) {
 	    (int)sizeof(mp->ver.device_code), mp->ver.device_code,
 	    (int)sizeof(mp->ver.serial_num), mp->ver.serial_num,
 	    mp->ver.device_status);
+
+	/* Device status. */
+	switch (mp->ver.device_status) {
+	case MP_DEV_VER_STATUS_NORMAL:
+		break;
+	case MP_DEV_VER_STATUS_BOOTLOADER: /* Can't use the device if it's in boot mode! */
+		printf("Bootloader mode detected, cant work with device.");
+		break;
+	default:
+		printf("Unknown device status: %"PRIu8, mp->ver.device_status);
+		break;
+	}
 }
 
 
@@ -463,24 +511,6 @@ minipro_chip_get(minipro_p mp) {
 	return (mp->chip);
 }
 
-int
-minipro_get_version_info(minipro_p mp, minipro_ver_p ver) {
-	size_t rcvd;
-
-	if (NULL == mp || NULL == ver)
-		return (EINVAL);
-	msg_init(mp, MP_CMD_GET_VERSION, 5);
-	MP_RET_ON_ERR(msg_send(mp, mp->msg, 5, NULL));
-	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
-	if (sizeof(minipro_ver_t) > rcvd) {
-		MP_LOG_ERR_FMT(EMSGSIZE, "expected %zu bytes but %zu bytes received.",
-		    sizeof(minipro_ver_t), rcvd);
-		return (EMSGSIZE);
-	}
-	memcpy(ver, mp->msg, sizeof(minipro_ver_t));
-
-	return (0);
-}
 
 int
 minipro_begin_transaction(minipro_p mp) {

@@ -332,9 +332,12 @@ main(int argc, char **argv) {
 	if (0 != error)
 		return (error);
 	/* Check and print device info. */
-	if (0 == cmd_opts.quiet) {
+	error = minipro_is_version_info_ok(mp);
+	if (0 == cmd_opts.quiet || 0 != error) {
 		minipro_print_info(mp);
 	}
+	if (0 != error)
+		goto err_out;
 
 	/* Check some command line options before continue. */
 	if (NULL == chip) { /* Is chip specified? */
