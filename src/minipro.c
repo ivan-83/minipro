@@ -527,8 +527,11 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	mp->read_block_buf = malloc((chip->read_block_size + 16));
 	mp->write_block_buf = malloc((chip->write_block_size + 16));
 	if (NULL == mp->read_block_buf ||
-	    NULL == mp->write_block_buf)
+	    NULL == mp->write_block_buf) {
+		free(mp->read_block_buf);
+		free(mp->write_block_buf);
 		return (ENOMEM);
+	}
 	mp->chip = chip;
 	mp->icsp = icsp;
 	/* Generate msg header with chip constans. */
