@@ -291,12 +291,13 @@ msg_init(minipro_p mp, uint8_t cmd, size_t msg_size) {
 }
 
 static void
-msg_chip_hdr_gen(chip_p chip, uint8_t icsp, uint8_t *buf) {
+msg_chip_hdr_gen(chip_p chip, uint8_t icsp, uint8_t *buf, size_t buf_size) {
 
-	buf[0] = 0x00;
+	memset(buf, 0x00, buf_size);
+	//buf[0] = 0x00;
 	buf[1] = chip->protocol_id;
 	buf[2] = chip->variant;
-	buf[3] = 0x00;
+	//buf[3] = 0x00;
 	buf[4] = ((chip->data_memory_size >> 8) & 0xff);
 
 	U16TO8_LITTLE(chip->opts1, &buf[5]);
@@ -510,7 +511,7 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	mp->chip = chip;
 	mp->icsp = icsp;
 	/* Generate msg header with chip constans. */
-	msg_chip_hdr_gen(chip, icsp, mp->msg_hdr);
+	msg_chip_hdr_gen(chip, icsp, mp->msg_hdr, sizeof(mp->msg_hdr));
 
 	/* Unlocking the TSOP48 adapter (if applicable). */
 	if (chip->opts4 == 0x1002078) {
