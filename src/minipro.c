@@ -40,6 +40,7 @@ static const uint8_t mp_chip_page_write_cmd[] = {
 	0
 };
 
+void	minipro_chip_clean(minipro_p mp);
 
 #define MP_LOG_TEXT(__text)						\
 	if (0 != mp->verboce) {						\
@@ -380,8 +381,7 @@ minipro_close(minipro_p mp) {
 		return;
 
 	libusb_close(mp->usb_handle);
-	free(mp->read_block_buf);
-	free(mp->write_block_buf);
+	minipro_chip_clean(mp);
 	free(mp);
 }
 
@@ -480,13 +480,10 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	if (NULL == mp)
 		return (EINVAL);
 	/* Cleanup old. */
-	free(mp->read_block_buf);
-	free(mp->write_block_buf);
-	mp->read_block_buf = NULL;
-	mp->write_block_buf = NULL;
-	mp->chip = NULL;
+	minipro_chip_clean(mp);
 	if (NULL == chip)
 		return (0);
+
 	if (0 == chip->read_block_size ||
 	    0 == chip->write_block_size) {
 		MP_LOG_ERR_FMT(EINVAL, "Cant handle this chip: read_block_size = %i, write_block_size = %i, zero size not allowed.",
@@ -503,11 +500,23 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	}
 
 	/* Set new. */
+	mp->read_block_buf = malloc((chip->read_block_size + 16));
+	mp->write_block_buf = malloc((chip->write_block_size + 16));
+	if (NULL == mp->read_block_buf ||
+	    NULL == mp->write_block_buf) {
+		minipro_chip_clean(mp);
+		return (ENOMEM);
+	}
+	mp->chip = chip;
+	mp->icsp = icsp;
+	/* Generate msg header with chip constans. */
+	msg_chip_hdr_gen(chip, icsp, mp->msg_hdr);
 
 	/* Unlocking the TSOP48 adapter (if applicable). */
 	if (chip->opts4 == 0x1002078) {
 		error = minipro_unlock_tsop48(mp, &tsop48);
 		if (0 != error) {
+			minipro_chip_clean(mp);
 			MP_LOG_ERR(error, "Cant unlock TSOP48.");
 			return (error);
 		}
@@ -516,6 +525,7 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 			MP_LOG_TEXT("Found TSOP adapter V3.");
 			break;
 		case MP_TSOP48_TYPE_NONE:
+			minipro_chip_clean(mp);
 			MP_LOG_ERR(EINVAL, "TSOP adapter not found!");
 			return (EINVAL);
 		case MP_TSOP48_TYPE_V2:
@@ -528,22 +538,25 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 		}
 	}
 
-	mp->read_block_buf = malloc((chip->read_block_size + 16));
-	mp->write_block_buf = malloc((chip->write_block_size + 16));
-	if (NULL == mp->read_block_buf ||
-	    NULL == mp->write_block_buf) {
-		free(mp->read_block_buf);
-		free(mp->write_block_buf);
-		return (ENOMEM);
-	}
-	mp->chip = chip;
-	mp->icsp = icsp;
-	/* Generate msg header with chip constans. */
-	msg_chip_hdr_gen(chip, icsp, mp->msg_hdr);
-
 	return (0);
 }
 	
+void
+minipro_chip_clean(minipro_p mp) {
+
+	if (NULL == mp)
+		return;
+
+	/* Turn off the power on zif socket. */
+	minipro_end_transaction(mp);
+	/* Free res. */
+	free(mp->read_block_buf);
+	free(mp->write_block_buf);
+	mp->read_block_buf = NULL;
+	mp->write_block_buf = NULL;
+	mp->chip = NULL;
+}
+
 chip_p
 minipro_chip_get(minipro_p mp) {
 
