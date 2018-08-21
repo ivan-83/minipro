@@ -320,7 +320,7 @@ msg_chip_hdr_set(minipro_p mp, uint8_t cmd, size_t msg_size) {
 }
 
 static int
-msh_send_chip_hdr(minipro_p mp, uint8_t cmd, size_t msg_size,
+msg_send_chip_hdr(minipro_p mp, uint8_t cmd, size_t msg_size,
     size_t *transferred) {
 
 	if (NULL == mp || NULL == mp->chip)
@@ -569,13 +569,13 @@ minipro_chip_get(minipro_p mp) {
 int
 minipro_begin_transaction(minipro_p mp) {
 
-	return (msh_send_chip_hdr(mp, MP_CMD_WRITE_CONFIG, 48, NULL));
+	return (msg_send_chip_hdr(mp, MP_CMD_WRITE_CONFIG, 48, NULL));
 }
 
 int
 minipro_end_transaction(minipro_p mp) {
 
-	return (msh_send_chip_hdr(mp, MP_CMD_WRITE_INFO, 4, NULL));
+	return (msg_send_chip_hdr(mp, MP_CMD_WRITE_INFO, 4, NULL));
 }
 
 /* Model-specific ID, e.g. AVR Device ID (not longer than 4 bytes) */
@@ -588,7 +588,7 @@ minipro_get_chip_id(minipro_p mp, uint32_t *chip_id, uint8_t *chip_id_size) {
 		return (EINVAL);
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
-	MP_RET_ON_ERR_CLEANUP(msh_send_chip_hdr(mp, MP_CMD_GET_CHIP_ID, 8, NULL));
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp, MP_CMD_GET_CHIP_ID, 8, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
 	if (2 > rcvd) {
 		error = EMSGSIZE;
@@ -631,7 +631,7 @@ minipro_protect_set(minipro_p mp, int val) {
 	if (NULL == mp || NULL == mp->chip)
 		return (EINVAL);
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
-	MP_RET_ON_ERR_CLEANUP(msh_send_chip_hdr(mp,
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
 	    ((0 != val) ? MP_CMD_PROTECT_ON : MP_CMD_PROTECT_OFF), 10, NULL));
 
 err_out:
@@ -685,7 +685,7 @@ minipro_get_status(minipro_p mp, uint16_t *status) {
 	if (NULL == mp || NULL == mp->chip || NULL == status)
 		return (EINVAL);
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
-	MP_RET_ON_ERR_CLEANUP(msh_send_chip_hdr(mp, MP_CMD_REQ_STATUS, 5, NULL));
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp, MP_CMD_REQ_STATUS, 5, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == 32 */
 	if (9 >= rcvd ||
 	    0 != mp->msg[9]) {
