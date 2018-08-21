@@ -36,8 +36,16 @@ static const char *minipro_dev_ver_str[] = {
 	"TL866CS",
 	NULL
 };
+
+#define MP_DEV_VER_STATUS_UNKNOWN	0 /* Only for address in this array. */
 #define MP_DEV_VER_STATUS_NORMAL	1
 #define MP_DEV_VER_STATUS_BOOTLOADER	2
+static const char *minipro_dev_status_str[] = {
+	"unknown",
+	"normal",
+	"boot mode",
+	NULL
+};
 
 
 #define MP_CMD_READ_FLASH	0x01

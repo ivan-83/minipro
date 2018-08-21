@@ -46,6 +46,10 @@ void	minipro_chip_clean(minipro_p mp);
 	if (0 != mp->verboce) {						\
 		fprintf(stdout, "%s\n",	(__text));			\
 	}
+#define MP_LOG_TEXT_FMT(__fmt, args...)					\
+	if (0 != mp->verboce) {						\
+		fprintf(stdout, __fmt "\n", ##args);			\
+	}
 
 #define MP_LOG_ERR(__error, __descr)					\
 	if (0 != (__error) && 0 != mp->verboce) {			\
@@ -426,7 +430,11 @@ minipro_is_version_info_ok(minipro_p mp) {
 	switch (mp->ver.device_status) {
 	case MP_DEV_VER_STATUS_NORMAL:
 		break;
+	case MP_DEV_VER_STATUS_BOOTLOADER: /* Can't use the device if it's in boot mode! */
+		MP_LOG_TEXT("Bootloader mode detected, cant work with device.");
+		return (EPROTONOSUPPORT);
 	default:
+		MP_LOG_TEXT_FMT("Unknown device status: %"PRIu8, mp->ver.device_status);
 		return (EPROTONOSUPPORT);
 	}
 
@@ -435,7 +443,7 @@ minipro_is_version_info_ok(minipro_p mp) {
 
 void
 minipro_print_info(minipro_p mp) {
-	const char *dev_ver_str;
+	const char *dev_ver_str, *dev_status_str;
 	char str_buf[64];
 
 	/* Model/dev ver preprocess. */
@@ -450,26 +458,25 @@ minipro_print_info(minipro_p mp) {
 		    mp->ver.device_version);
 		dev_ver_str = (const char*)str_buf;
 	}
-	printf("Minipro: %s, fw: v%02d.%"PRIu8".%"PRIu8"%s, code: %.*s, serial: %.*s, proto: %"PRIu8"\n",
+
+	/* Device status. */
+	switch (mp->ver.device_status) {
+	case MP_DEV_VER_STATUS_NORMAL:
+	case MP_DEV_VER_STATUS_BOOTLOADER:
+		dev_status_str = minipro_dev_status_str[mp->ver.device_status];
+		break;
+	default:
+		dev_status_str = minipro_dev_status_str[MP_DEV_VER_STATUS_UNKNOWN];
+	}
+
+	printf("Minipro: %s, fw: v%02d.%"PRIu8".%"PRIu8"%s, code: %.*s, serial: %.*s, status: %"PRIu8" - %s\n",
 	    dev_ver_str,
 	    mp->ver.hardware_version, mp->ver.firmware_version_major,
 	    mp->ver.firmware_version_minor,
 	    ((MP_FW_VER_MIN > ((mp->ver.firmware_version_major << 8) | mp->ver.firmware_version_minor)) ? " (newer fw avaible)" : ""),
 	    (int)sizeof(mp->ver.device_code), mp->ver.device_code,
 	    (int)sizeof(mp->ver.serial_num), mp->ver.serial_num,
-	    mp->ver.device_status);
-
-	/* Device status. */
-	switch (mp->ver.device_status) {
-	case MP_DEV_VER_STATUS_NORMAL:
-		break;
-	case MP_DEV_VER_STATUS_BOOTLOADER: /* Can't use the device if it's in boot mode! */
-		printf("Bootloader mode detected, cant work with device.");
-		break;
-	default:
-		printf("Unknown device status: %"PRIu8, mp->ver.device_status);
-		break;
-	}
+	    mp->ver.device_status, dev_status_str);
 }
 
 
