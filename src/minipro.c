@@ -385,8 +385,8 @@ minipro_close(minipro_p mp) {
 	if (NULL == mp)
 		return;
 
-	libusb_close(mp->usb_handle);
 	minipro_chip_clean(mp);
+	libusb_close(mp->usb_handle);
 	free(mp);
 }
 
