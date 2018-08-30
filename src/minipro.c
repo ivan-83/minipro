@@ -863,7 +863,7 @@ minipro_write_fuses(minipro_p mp, uint8_t cmd,
 		mp->msg[2] = ((4 == buf_size) ? 0x02 : 0x01); /* 2 fuse PICs have len = 8 */
 		mp->msg[4] = 0xc8;
 		mp->msg[5] = 0x0f;
-		mp->msg[6] = 0x00;
+		mp->msg[6] = 0x00; /* Do not optimize this. */
 		memcpy(&mp->msg[7], buf, buf_size);
 		MP_RET_ON_ERR(msg_send(mp, mp->msg, 64, NULL));
 		break;
