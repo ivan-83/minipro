@@ -83,6 +83,13 @@ static const char *minipro_dev_status_str[] = {
 #define		MP_TSOP48_TYPE_FAKE1	0x03
 #define		MP_TSOP48_TYPE_FAKE2	0x04
 #define MP_CMD_REQ_STATUS	0xfe
+typedef struct minipro_status_s {
+	uint16_t	error;
+	uint16_t	c1;
+	uint16_t	c2;
+	uint32_t	address;
+	uint8_t		ovp; /* Overcurrency protection. */
+} minipro_status_t, *minipro_status_p;
 #define MP_CMD_RESET_COMMAND	0xff
 
 
@@ -122,7 +129,7 @@ int	minipro_protect_set(minipro_p mp, int val);
 
 int	minipro_unlock_tsop48(minipro_p mp, uint8_t *type);
 
-int	minipro_get_status(minipro_p mp, uint16_t *status);
+int	minipro_get_status(minipro_p mp, minipro_status_p status);
 
 int	minipro_read_block(minipro_p mp, uint8_t cmd, uint32_t addr,
 	    uint8_t *buf, size_t buf_size);

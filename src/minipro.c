@@ -714,7 +714,7 @@ minipro_unlock_tsop48(minipro_p mp, uint8_t *type) {
 }
 
 int
-minipro_get_status(minipro_p mp, uint16_t *status) {
+minipro_get_status(minipro_p mp, minipro_status_p status) {
 	int error;
 	size_t rcvd;
 
@@ -723,12 +723,15 @@ minipro_get_status(minipro_p mp, uint16_t *status) {
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
 	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp, MP_CMD_REQ_STATUS, 5, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == 32 */
-	if (9 >= rcvd ||
-	    0 != mp->msg[9]) {
-		error = -1; /* Overcurrency protection. */
-	} else {
-		(*status) = U8TO16_LITTLE(mp->msg);
+	if (10 > rcvd) {
+		error = EMSGSIZE;
+		goto err_out;
 	}
+	status->error = U8TO16_LITTLE(&mp->msg[0]);
+	status->c1 = U8TO16_LITTLE(&mp->msg[2]);
+	status->c2 = U8TO16_LITTLE(&mp->msg[4]);
+	status->address = U8TO32n_LITTLE(&mp->msg[6], 3);
+	status->ovp = mp->msg[9]; /* Overcurrency protection. */
 
 err_out:
 	minipro_end_transaction(mp); /* Call after msg processed. */
@@ -1322,7 +1325,7 @@ minipro_page_write(minipro_p mp, uint32_t flags, int page, uint32_t address,
     const uint8_t *buf, size_t buf_size, minipro_progress_cb cb, void *udata) {
 	int error;
 	size_t chip_size;
-	uint16_t status;
+	minipro_status_t status;
 
 	if (NULL == mp || NULL == mp->chip || NULL == buf || 0 == buf_size)
 		return (EINVAL);
@@ -1352,12 +1355,12 @@ minipro_page_write(minipro_p mp, uint32_t flags, int page, uint32_t address,
 	/* Status check. */
 	error = minipro_get_status(mp, &status);
 	if (0 != error) {
-		if (-1 == error) {
-			MP_LOG_ERR(error, "Overcurrency protection.");
-		} else {
-			MP_LOG_ERR(error, "minipro_get_status() fail.");
-		}
+		MP_LOG_ERR(error, "minipro_get_status() fail.");
 		return (error);
+	}
+	if (0 != status.ovp) {
+		MP_LOG_ERR(-1, "Overcurrency protection.");
+		return (-1);
 	}
 
 	/* Turn off protection before writing. */
