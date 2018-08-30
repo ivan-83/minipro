@@ -53,18 +53,16 @@ static const char *minipro_dev_status_str[] = {
 #define MP_CMD_WRITE_CONFIG	0x03
 #define MP_CMD_WRITE_INFO	0x04
 #define MP_CMD_GET_CHIP_ID	0x05 /* GET_INFO */
-typedef struct minipro_dumper_info_s {
-	uint8_t		device_code[8];
-	uint8_t		serial_num[24];
-	uint8_t		bootloader_ver;
-	uint8_t		cp_bit;		/* Copy protect byte. */
-} __attribute__((__packed__)) minipro_dinfo_t, *minipro_dinfo_p;
-
+#define 	MP_CHIP_ID_TYPE1	0x01 /* 1-3 bytes ID. */
+#define 	MP_CHIP_ID_TYPE2	0x02 /* 4 bytes ID. */
+#define 	MP_CHIP_ID_TYPE3	0x03 /* Microchip controllers with 5 bit revision number. */
+#define 	MP_CHIP_ID_TYPE4	0x04 /* Microchip controllers with 4-5 bit revision number. */
+#define 	MP_CHIP_ID_TYPE5	0x05 /* 3 bytes ID, this ID type is returning from 25 SPI series. */
 #define MP_CMD_READ_CFG		0x12
 #define MP_CMD_WRITE_CFG	0x13
 #define MP_CMD_WRITE_CODE	0x20 
 #define MP_CMD_READ_CODE	0x21 
-#define MP_CMD_PREPARE_WRITING	0x22
+#define MP_CMD_ERASE		0x22
 #define MP_CMD_READ_DATA	0x30 
 #define MP_CMD_WRITE_DATA	0x31 
 #define MP_CMD_PROTECT_OFF	0x44
@@ -97,7 +95,8 @@ typedef struct minipro_dumper_info_s {
 
 
 typedef struct minipro_handle_s *minipro_p;
-typedef void (*minipro_progress_cb)(minipro_p mp, size_t done, size_t total, void *udata);
+typedef void (*minipro_progress_cb)(minipro_p mp, size_t done,
+		size_t total, void *udata);
 
 
 int	minipro_open(uint16_t vendor_id, uint16_t product_id,
@@ -113,7 +112,9 @@ chip_p	minipro_chip_get(minipro_p mp);
 
 int	minipro_begin_transaction(minipro_p mp);
 int	minipro_end_transaction(minipro_p mp);
-int	minipro_get_chip_id(minipro_p mp, uint32_t *chip_id, uint8_t *chip_id_size);
+int	minipro_get_chip_id(minipro_p mp, uint32_t *chip_id_type,
+	    uint32_t *chip_id, uint8_t *chip_id_size,
+	    uint32_t *chip_id_rev);
 
 int	minipro_prepare_writing(minipro_p mp);
 
@@ -167,8 +168,8 @@ static const char *mp_chip_page_str[] = {
 };
 
 int	minipro_page_read(minipro_p mp, int page,
-	    uint32_t address, size_t size, uint8_t **buf, size_t *buf_size,
-	    minipro_progress_cb cb, void *udata);
+	    uint32_t address, size_t size, uint8_t **buf,
+	    size_t *buf_size, minipro_progress_cb cb, void *udata);
 int	minipro_page_verify(minipro_p mp, int page, uint32_t address,
 	    const uint8_t *buf, size_t buf_size,
 	    size_t *err_offset, uint32_t *buf_val, uint32_t *chip_val,

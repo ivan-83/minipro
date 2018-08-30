@@ -5,6 +5,7 @@
 #include <strings.h>
 #include <errno.h>
 
+#include "utils/macro.h"
 #include "utils/strh2num.h"
 #include "utils/mem_utils.h"
 #include "utils/sys.h"
@@ -58,6 +59,165 @@ static fuse_decl_t pic2_fuses[] = {
 
 static chip_p chips_db = NULL;
 
+/* Device ID table for the Microchip PIC controllers.
+ * Extracted by Radioman from the last 6.82 minipro software.
+ */
+static chip_id_map_t chip_id_map_tbl[] = {
+	{ .shift = 0x00, .chip_id = 0x00000000 }, /* none. */
+	{ .shift = 0x04, .chip_id = 0x000000e4 },
+	{ .shift = 0x04, .chip_id = 0x000000e6 },
+	{ .shift = 0x04, .chip_id = 0x000000e0 },
+	{ .shift = 0x04, .chip_id = 0x000000e2 },
+	{ .shift = 0x04, .chip_id = 0x0000007d },
+	{ .shift = 0x05, .chip_id = 0x00000023 },
+	{ .shift = 0x05, .chip_id = 0x00000091 },
+	{ .shift = 0x05, .chip_id = 0x00000085 },
+	{ .shift = 0x05, .chip_id = 0x00000085 },
+	{ .shift = 0x05, .chip_id = 0x000000a2 },
+	{ .shift = 0x05, .chip_id = 0x00000084 },
+	{ .shift = 0x05, .chip_id = 0x00000025 },
+	{ .shift = 0x05, .chip_id = 0x00000099 },
+	{ .shift = 0x05, .chip_id = 0x0000008c },
+	{ .shift = 0x05, .chip_id = 0x0000009a },
+	{ .shift = 0x05, .chip_id = 0x000000a0 },
+	{ .shift = 0x05, .chip_id = 0x00000005 },
+	{ .shift = 0x05, .chip_id = 0x00000030 },
+	{ .shift = 0x05, .chip_id = 0x00000031 },
+	{ .shift = 0x05, .chip_id = 0x00000032 },
+	{ .shift = 0x05, .chip_id = 0x00000033 },
+	{ .shift = 0x05, .chip_id = 0x00000082 },
+	{ .shift = 0x05, .chip_id = 0x00000083 },
+	{ .shift = 0x05, .chip_id = 0x00000088 },
+	{ .shift = 0x05, .chip_id = 0x00000082 },
+	{ .shift = 0x05, .chip_id = 0x00000083 },
+	{ .shift = 0x05, .chip_id = 0x00000088 },
+	{ .shift = 0x05, .chip_id = 0x00000068 },
+	{ .shift = 0x05, .chip_id = 0x00000069 },
+	{ .shift = 0x05, .chip_id = 0x00000047 },
+	{ .shift = 0x05, .chip_id = 0x0000004b },
+	{ .shift = 0x05, .chip_id = 0x00000049 },
+	{ .shift = 0x05, .chip_id = 0x0000004f },
+	{ .shift = 0x05, .chip_id = 0x0000004d },
+	{ .shift = 0x05, .chip_id = 0x0000004c },
+	{ .shift = 0x04, .chip_id = 0x0000004e },
+	{ .shift = 0x04, .chip_id = 0x00000100 },
+	{ .shift = 0x05, .chip_id = 0x00000101 },
+	{ .shift = 0x05, .chip_id = 0x00000102 },
+	{ .shift = 0x05, .chip_id = 0x00000103 },
+	{ .shift = 0x05, .chip_id = 0x00000104 },
+	{ .shift = 0x05, .chip_id = 0x00000072 },
+	{ .shift = 0x04, .chip_id = 0x00000076 },
+	{ .shift = 0x04, .chip_id = 0x0000013e },
+	{ .shift = 0x04, .chip_id = 0x0000013c },
+	{ .shift = 0x04, .chip_id = 0x0000013a },
+	{ .shift = 0x04, .chip_id = 0x00000138 },
+	{ .shift = 0x04, .chip_id = 0x00000146 },
+	{ .shift = 0x04, .chip_id = 0x0000005d },
+	{ .shift = 0x05, .chip_id = 0x0000005f },
+	{ .shift = 0x05, .chip_id = 0x0000007d },
+	{ .shift = 0x05, .chip_id = 0x0000006f },
+	{ .shift = 0x05, .chip_id = 0x00000090 },
+	{ .shift = 0x05, .chip_id = 0x00000091 },
+	{ .shift = 0x05, .chip_id = 0x00000112 },
+	{ .shift = 0x05, .chip_id = 0x00000113 },
+	{ .shift = 0x05, .chip_id = 0x0000010c },
+	{ .shift = 0x05, .chip_id = 0x00000092 },
+	{ .shift = 0x05, .chip_id = 0x00000114 },
+	{ .shift = 0x05, .chip_id = 0x00000115 },
+	{ .shift = 0x05, .chip_id = 0x0000010d },
+	{ .shift = 0x05, .chip_id = 0x00000093 },
+	{ .shift = 0x05, .chip_id = 0x0000007c },
+	{ .shift = 0x05, .chip_id = 0x0000007e },
+	{ .shift = 0x05, .chip_id = 0x00000086 },
+	{ .shift = 0x05, .chip_id = 0x00000087 },
+	{ .shift = 0x05, .chip_id = 0x000000c4 },
+	{ .shift = 0x05, .chip_id = 0x000000c3 },
+	{ .shift = 0x05, .chip_id = 0x000000c2 },
+	{ .shift = 0x05, .chip_id = 0x000000c1 },
+	{ .shift = 0x05, .chip_id = 0x000000c0 },
+	{ .shift = 0x05, .chip_id = 0x000000cc },
+	{ .shift = 0x05, .chip_id = 0x000000cb },
+	{ .shift = 0x05, .chip_id = 0x000000ca },
+	{ .shift = 0x05, .chip_id = 0x000000c9 },
+	{ .shift = 0x05, .chip_id = 0x000000c8 },
+	{ .shift = 0x05, .chip_id = 0x000000d9 },
+	{ .shift = 0x05, .chip_id = 0x000000d8 },
+	{ .shift = 0x05, .chip_id = 0x000000db },
+	{ .shift = 0x05, .chip_id = 0x000000da },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x0000002b },
+	{ .shift = 0x05, .chip_id = 0x0000002b },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x00000000 },
+	{ .shift = 0x05, .chip_id = 0x0000008a },
+	{ .shift = 0x05, .chip_id = 0x0000008a }
+};
+
+chip_id_map_p
+chip_id_map(uint32_t index) {
+
+	if (0 == index || index >= SIZEOF(chip_id_map_tbl))
+		return (NULL);	
+	return (&chip_id_map_tbl[index]);
+}
 
 static int
 chip_db_parse_item(ini_p ini, size_t sect_off, const uint8_t *sect_name,
@@ -65,6 +225,7 @@ chip_db_parse_item(ini_p ini, size_t sect_off, const uint8_t *sect_name,
 	const uint8_t *val_name, *val;
 	size_t val_off, val_name_size, val_size;
 	uint32_t smask;
+	chip_id_map_p id_map;
 
 	if (NULL == ini || NULL == sect_name || NULL == chip)
 		return (EINVAL);
@@ -150,6 +311,21 @@ chip_db_parse_item(ini_p ini, size_t sect_off, const uint8_t *sect_name,
 		fprintf(stderr, "Section: \"%.*s\", at line %zu does not contain all required fields.\n",
 		    (int)sect_name_size, sect_name, sect_off);
 		return (EINVAL);
+	}
+
+	/* This is a workaround for al Microchip controllers.
+	 * These controllers have the Chip ID defined elsewhere, not in
+	 * the infoic.dll but in a table located inside the Minipro.exe
+	 * For these controlers (almost 600 devices) the opts3 is an
+	 * index in this table.
+	 */
+	if (0 == chip->chip_id &&
+	    0 != chip->chip_id_size) {
+		id_map = chip_id_map(chip->opts3);
+		debug_break_if(NULL == id_map);
+		if (NULL != id_map) {
+			chip->chip_id = id_map->chip_id;
+		}
 	}
 
 	/* Store name. */

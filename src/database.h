@@ -36,7 +36,14 @@ typedef struct chip_s {
 	fuse_decl_p	fuses;		/* Configuration bytes that's presenting in some architectures. */
 } __attribute__((__packed__)) chip_t, *chip_p;
 
+typedef struct chip_id_map_s {
+	uint8_t		shift;
+	uint32_t	chip_id;
+} chip_id_map_t, *chip_id_map_p;
+
 #define CHIP_NAME_MAX		64	/* Max chip name len. */
+
+chip_id_map_p chip_id_map(uint32_t index);
 
 void	chip_db_free(void);
 int	chip_db_load(const char *file_name, size_t file_name_size);
@@ -50,6 +57,5 @@ chip_p	chip_db_get_by_name(const char *name);
 void	chip_db_dump_flt(const char *name);
 
 void	chip_db_print_info(const chip_p chip);
-
 
 #endif

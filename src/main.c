@@ -280,7 +280,7 @@ main(int argc, char **argv) {
 	minipro_p mp = NULL;
 	chip_p chip = NULL;
 	int fd;
-	uint32_t chip_id, chip_val, buf_val;
+	uint32_t chip_id_type, chip_id, chip_id_rev, chip_val, buf_val;
 	uint8_t chip_id_size, *file_data = NULL, *chip_data = NULL;
 	size_t file_data_size, chip_data_size, chip_size = 0, tr_size, err_offset;
 	off_t file_size;
@@ -420,22 +420,23 @@ main(int argc, char **argv) {
 	if (0 == cmd_opts.chip_id_check_disable &&
 	    chip->chip_id_size &&
 	    chip->chip_id) {
-		error = minipro_get_chip_id(mp, &chip_id, &chip_id_size);
+		error = minipro_get_chip_id(mp, &chip_id_type,
+		    &chip_id, &chip_id_size, &chip_id_rev);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on chip ID read.");
 			goto err_out;
 		}
 		if (is_chip_id_prob_eq(chip, chip_id, chip_id_size)) {
-			printf("Chip ID OK: expected 0x%02x, got 0x%02x.\n",
-			    chip->chip_id, chip_id);
+			printf("Chip ID OK: expected 0x%02x, got 0x%02x rev 0x%02x.\n",
+			    chip->chip_id, chip_id, chip_id_rev);
 		} else {
 			if (0 != cmd_opts.chip_id_check_no_fail) {
-				printf("WARNING: Chip ID mismatch: expected 0x%02x, got 0x%02x.\n",
-				    chip->chip_id, chip_id);
+				printf("WARNING: Chip ID mismatch: expected 0x%02x, got 0x%02x rev 0x%02x.\n",
+				    chip->chip_id, chip_id, chip_id_rev);
 				chip_db_print_info(chip_db_get_by_id(chip_id, chip_id_size));
 			} else {
-				fprintf(stderr, "Invalid Chip ID: expected 0x%02x, got 0x%02x\n(use '-y' to continue anyway at your own risk).\n",
-				    chip->chip_id, chip_id);
+				fprintf(stderr, "Invalid Chip ID: expected 0x%02x, got 0x%02x rev 0x%02x\n(use '-y' to continue anyway at your own risk).\n",
+				    chip->chip_id, chip_id, chip_id_rev);
 				chip_db_print_info(chip_db_get_by_id(chip_id, chip_id_size));
 				error = -1;
 				goto err_out;

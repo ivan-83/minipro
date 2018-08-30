@@ -588,11 +588,15 @@ minipro_end_transaction(minipro_p mp) {
 
 /* Model-specific ID, e.g. AVR Device ID (not longer than 4 bytes) */
 int
-minipro_get_chip_id(minipro_p mp, uint32_t *chip_id, uint8_t *chip_id_size) {
+minipro_get_chip_id(minipro_p mp, uint32_t *chip_id_type,
+    uint32_t *chip_id, uint8_t *chip_id_size, uint32_t *chip_id_rev) {
 	int error;
 	size_t rcvd;
+	uint32_t chip_id_tm;
+	chip_id_map_p id_map;
 
-	if (NULL == mp || NULL == mp->chip || NULL == chip_id)
+	if (NULL == mp || NULL == mp->chip || NULL == chip_id_type ||
+	    NULL == chip_id || NULL == chip_id_size)
 		return (EINVAL);
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
@@ -600,14 +604,38 @@ minipro_get_chip_id(minipro_p mp, uint32_t *chip_id, uint8_t *chip_id_size) {
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
 	if (2 > rcvd) {
 		error = EMSGSIZE;
-	} else {
-		rcvd -= 2;
-		if (4 < rcvd) {
-			rcvd = 4; /* Truncate / limit max size. */
-		}
-		(*chip_id) = U8TO32n_BIG(&mp->msg[2], rcvd);
-		(*chip_id_size) = (uint8_t)rcvd;
+		goto err_out;
 	}
+	
+	chip_id_tm = U8TO32n_BIG(&mp->msg[2], (mp->msg[1] & 0x03));
+	switch (mp->msg[0]) {
+	case MP_CHIP_ID_TYPE1:
+	case MP_CHIP_ID_TYPE2:
+	case MP_CHIP_ID_TYPE5:
+		(*chip_id) = chip_id_tm;
+		(*chip_id_rev) = 0;
+		break;
+	case MP_CHIP_ID_TYPE3:
+		(*chip_id) = (chip_id_tm >> 5);
+		(*chip_id_rev) = (chip_id_tm & 0x0000001f);
+		break;
+	case MP_CHIP_ID_TYPE4:
+		id_map = chip_id_map(mp->chip->opts3);
+		if (NULL == id_map) {
+			error = EINVAL;
+			goto err_out;
+		}
+		(*chip_id) = (chip_id_tm >> id_map->shift);
+		(*chip_id_rev) = (chip_id_tm &
+		    ((0x00000001 << id_map->shift) - 1));
+		break;
+	default:
+		error = EINVAL;
+		goto err_out;
+	}
+
+	(*chip_id_type) = mp->msg[0];
+	(*chip_id_size) = (mp->msg[1] & 0x03);
 
 err_out:
 	minipro_end_transaction(mp); /* Call after msg processed. */
@@ -622,13 +650,13 @@ minipro_prepare_writing(minipro_p mp) {
 	if (NULL == mp || NULL == mp->chip)
 		return (EINVAL);
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
-	msg_chip_hdr_set(mp, MP_CMD_PREPARE_WRITING, 15);
+	msg_chip_hdr_set(mp, MP_CMD_ERASE, 15);
 	mp->msg[2] = mp->chip->write_unlock;
 	MP_RET_ON_ERR_CLEANUP(msg_send(mp, mp->msg, 15, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == 10 */
 
 err_out:
-	minipro_end_transaction(mp); /* Let MP_CMD_PREPARE_WRITING to take an effect. */
+	minipro_end_transaction(mp); /* Let MP_CMD_ERASE to take an effect. */
 	return (error);
 }
 
@@ -1325,7 +1353,7 @@ minipro_page_write(minipro_p mp, uint32_t flags, int page, uint32_t address,
 	error = minipro_get_status(mp, &status);
 	if (0 != error) {
 		if (-1 == error) {
-			MP_LOG_ERR(error, "Overcurrency protection.\n");
+			MP_LOG_ERR(error, "Overcurrency protection.");
 		} else {
 			MP_LOG_ERR(error, "minipro_get_status() fail.");
 		}
