@@ -48,10 +48,13 @@ chip_id_map_p chip_id_map(uint32_t index);
 void	chip_db_free(void);
 int	chip_db_load(const char *file_name, size_t file_name_size);
 
-int	is_chip_id_prob_eq(const chip_p chip, const uint32_t id, const uint8_t id_size);
-int	is_chip_id_eq(const chip_p chip, const uint32_t id, const uint8_t id_size);
+int	is_chip_id_prob_eq(const chip_p chip, const uint32_t id,
+	    const uint8_t id_size);
+int	is_chip_id_eq(const chip_p chip, const uint32_t id,
+	    const uint8_t id_size);
 
-chip_p	chip_db_get_by_id(const uint32_t chip_id, const uint8_t chip_id_size);
+chip_p	chip_db_get_by_id(const uint32_t chip_id,
+	    const uint8_t chip_id_size);
 chip_p	chip_db_get_by_name(const char *name);
 
 void	chip_db_dump_flt(const char *name);

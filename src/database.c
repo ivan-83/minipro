@@ -211,6 +211,7 @@ static chip_id_map_t chip_id_map_tbl[] = {
 	{ .shift = 0x05, .chip_id = 0x0000008a }
 };
 
+
 chip_id_map_p
 chip_id_map(uint32_t index) {
 
@@ -219,68 +220,69 @@ chip_id_map(uint32_t index) {
 	return (&chip_id_map_tbl[index]);
 }
 
+
 static int
-chip_db_parse_item(ini_p ini, size_t sect_off, const uint8_t *sect_name,
-    size_t sect_name_size, chip_p chip) {
-	const uint8_t *val_name, *val;
-	size_t val_off, val_name_size, val_size;
+chip_db_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
+    size_t sname_sz, chip_p chip) {
+	const uint8_t *vn, *val;
+	size_t voff, vn_sz, val_size;
 	uint32_t smask;
 	chip_id_map_p id_map;
 
-	if (NULL == ini || NULL == sect_name || NULL == chip)
+	if (NULL == ini || NULL == sname || NULL == chip)
 		return (EINVAL);
 
 	/* Parse fields. */
 	smask = 0;
-	val_off = 0;
-	while (0 == ini_sect_val_enum(ini, sect_off, &val_off,
-	    &val_name, &val_name_size, &val, &val_size)) {
-		if (0 == mem_cmpn_cstr("protocol_id", val_name, val_name_size)) {
+	voff = 0;
+	while (0 == ini_sect_val_enum(ini, soff, &voff,
+	    &vn, &vn_sz, &val, &val_size)) {
+		if (0 == mem_cmpn_cstr("protocol_id", vn, vn_sz)) {
 			chip->protocol_id = ustrh2u8(val, val_size);
 			smask |= (((uint32_t)1) << 0);
-		} else if (0 == mem_cmpn_cstr("variant", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("variant", vn, vn_sz)) {
 			chip->variant = ustrh2u8(val, val_size);
 			smask |= (((uint32_t)1) << 1);
-		} else if (0 == mem_cmpn_cstr("read_block_size", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("read_block_size", vn, vn_sz)) {
 			chip->read_block_size = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 2);
-		} else if (0 == mem_cmpn_cstr("write_block_size", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("write_block_size", vn, vn_sz)) {
 			chip->write_block_size = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 3);
-		} else if (0 == mem_cmpn_cstr("code_memory_size", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("code_memory_size", vn, vn_sz)) {
 			chip->code_memory_size = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 4);
-		} else if (0 == mem_cmpn_cstr("data_memory_size", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("data_memory_size", vn, vn_sz)) {
 			chip->data_memory_size = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 5);
-		} else if (0 == mem_cmpn_cstr("data_memory2_size", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("data_memory2_size", vn, vn_sz)) {
 			chip->data_memory2_size = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 6);
-		} else if (0 == mem_cmpn_cstr("chip_id", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("chip_id", vn, vn_sz)) {
 			chip->chip_id = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 7);
-		} else if (0 == mem_cmpn_cstr("chip_id_size", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("chip_id_size", vn, vn_sz)) {
 			chip->chip_id_size = ustrh2u8(val, val_size);
 			smask |= (((uint32_t)1) << 8);
-		} else if (0 == mem_cmpn_cstr("opts1", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("opts1", vn, vn_sz)) {
 			chip->opts1 = ustrh2u16(val, val_size);
 			smask |= (((uint32_t)1) << 9);
-		} else if (0 == mem_cmpn_cstr("opts2", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("opts2", vn, vn_sz)) {
 			chip->opts2 = ustrh2u16(val, val_size);
 			smask |= (((uint32_t)1) << 10);
-		} else if (0 == mem_cmpn_cstr("opts3", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("opts3", vn, vn_sz)) {
 			chip->opts3 = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 11);
-		} else if (0 == mem_cmpn_cstr("opts4", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("opts4", vn, vn_sz)) {
 			chip->opts4 = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 12);
-		} else if (0 == mem_cmpn_cstr("package_details", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("package_details", vn, vn_sz)) {
 			chip->package_details = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 13);
-		} else if (0 == mem_cmpn_cstr("write_unlock", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("write_unlock", vn, vn_sz)) {
 			chip->write_unlock = ustrh2u16(val, val_size);
 			smask |= (((uint32_t)1) << 14);
-		} else if (0 == mem_cmpn_cstr("fuses", val_name, val_name_size)) {
+		} else if (0 == mem_cmpn_cstr("fuses", vn, vn_sz)) {
 			if (0 == mem_cmpn_cstr("NULL", val, val_size)) {
 				chip->fuses = NULL;
 			} else if (0 == mem_cmpn_cstr("avr_fuses", val, val_size)) {
@@ -295,21 +297,26 @@ chip_db_parse_item(ini_p ini, size_t sect_off, const uint8_t *sect_name,
 				chip->fuses = pic2_fuses;
 			} else {
 				chip->fuses = NULL;
-				fprintf(stderr, "Unknown fuse value: \"%.*s\", line %zu.\n",
-				    (int)val_size, val, val_off);
+				fprintf(stderr,
+				    "Unknown fuse value: \"%.*s\", "
+				    "line %zu.\n",
+				    (int)val_size, val, voff);
 			}
 			smask |= (((uint32_t)1) << 15);
 		} else {
-			fprintf(stderr, "Unknown field: \"%.*s\", line %zu.\n",
-			    (int)val_name_size, val_name, val_off);
+			fprintf(stderr,
+			    "Unknown field: \"%.*s\", line %zu.\n",
+			    (int)vn_sz, vn, voff);
 		}
-		val_off ++;
+		voff ++;
 	}
 
 	/* Is all fields set? */
 	if (((((uint32_t)1) << 16) - 1) != smask) {
-		fprintf(stderr, "Section: \"%.*s\", at line %zu does not contain all required fields.\n",
-		    (int)sect_name_size, sect_name, sect_off);
+		fprintf(stderr,
+		    "Section: \"%.*s\", at line %zu does not contain "
+		    "all required fields.\n",
+		    (int)sname_sz, sname, soff);
 		return (EINVAL);
 	}
 
@@ -329,10 +336,10 @@ chip_db_parse_item(ini_p ini, size_t sect_off, const uint8_t *sect_name,
 	}
 
 	/* Store name. */
-	chip->name = zalloc((sect_name_size + sizeof(void*)));
+	chip->name = zalloc((sname_sz + sizeof(void*)));
 	if (NULL == chip->name)
 		return (ENOMEM);
-	memcpy((void*)chip->name, sect_name, sect_name_size);
+	memcpy((void*)chip->name, sname, sname_sz);
 
 	return (0);
 }
@@ -356,12 +363,13 @@ int
 chip_db_load(const char *file_name, size_t file_name_size) {
 	int error;
 	uint8_t *buf = NULL;
-	const uint8_t *sect_name;
-	size_t buf_size, sect_off, sect_name_size;
+	const uint8_t *sname;
+	size_t buf_size, soff, sname_sz;
 	size_t cdb_allocated = 0, cdb_count = 0;
 	ini_p ini = NULL;
 
-	error = read_file(file_name, file_name_size, 0, 0, (1024 * 1024 * 1024) /* 1Gb */,
+	error = read_file(file_name, file_name_size, 0, 0,
+	    (1024 * 1024 * 1024) /* 1Gb */,
 	    &buf, &buf_size);
 	if (0 != error)
 		goto err_out;
@@ -372,18 +380,18 @@ chip_db_load(const char *file_name, size_t file_name_size) {
 	if (0 != error)
 		goto err_out;
 	/* Load chips. */
-	sect_off = 0;
-	while (0 == ini_sect_enum(ini, &sect_off, &sect_name, &sect_name_size)) {
+	soff = 0;
+	while (0 == ini_sect_enum(ini, &soff, &sname, &sname_sz)) {
 		error = realloc_items((void**)&chips_db,
 		    sizeof(chip_t), &cdb_allocated,
 		    DB_CHIPS_PREALLOC, cdb_count);
 		if (0 != error)
 			goto err_out;
-		if (0 == chip_db_parse_item(ini, sect_off, sect_name, sect_name_size,
+		if (0 == chip_db_parse_item(ini, soff, sname, sname_sz,
 		    &chips_db[cdb_count])) {
 			cdb_count ++;
 		}
-		sect_off ++;
+		soff ++;
 	}
 
 	/* Make sure that last NULL element exist. */
@@ -403,7 +411,8 @@ err_out:
 
 
 int
-is_chip_id_prob_eq(const chip_p chip, const uint32_t id, const uint8_t id_size) {
+is_chip_id_prob_eq(const chip_p chip, const uint32_t id,
+    const uint8_t id_size) {
 
 	if (0 == chip->chip_id_size || 0 == id_size)
 		return ((chip->chip_id_size == id_size));
@@ -412,11 +421,13 @@ is_chip_id_prob_eq(const chip_p chip, const uint32_t id, const uint8_t id_size) 
 	if (chip->chip_id_size > id_size)
 		return (0);
 	/* chip->chip_id_size < id_size */
-	return ((chip->chip_id == (id >> (8 * (id_size - chip->chip_id_size)))));
+	return ((chip->chip_id ==
+	    (id >> (8 * (id_size - chip->chip_id_size)))));
 }
 
 int
-is_chip_id_eq(const chip_p chip, const uint32_t id, const uint8_t id_size) {
+is_chip_id_eq(const chip_p chip, const uint32_t id,
+    const uint8_t id_size) {
 
 	if (chip->chip_id_size != id_size ||
 	    0 == chip->chip_id_size)
@@ -491,7 +502,8 @@ chip_db_print_info(const chip_p chip) {
 		printf("%d Bits", chip->code_memory_size);
 		break;
 	default:
-		printf(" unknown memory shape: 0x%x\n", (0xff000000 & chip->opts4));
+		printf(" unknown memory shape: 0x%x\n",
+		    (0xff000000 & chip->opts4));
 	}
 	if (chip->data_memory_size) {
 		printf(" + %d Bytes", chip->data_memory_size);

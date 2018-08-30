@@ -132,7 +132,9 @@ cmd_opts_parse(int argc, char **argv, cmd_opts_p cmd_opts) {
 
 	/* Process command line. */
 	/* Generate opts string from long options. */
-	for (i = 0, opt_idx = 0; NULL != lopts[i].name && (int)(sizeof(opts_str) - 1) > opt_idx; i ++) {
+	for (i = 0, opt_idx = 0;
+	    NULL != lopts[i].name && (int)(sizeof(opts_str) - 1) > opt_idx;
+	    i ++) {
 		if (0 == lopts[i].val)
 			continue;
 		opts_str[opt_idx ++] = (char)lopts[i].val;
@@ -146,11 +148,14 @@ cmd_opts_parse(int argc, char **argv, cmd_opts_p cmd_opts) {
 	}
 	opts_str[opt_idx] = 0;
 	opt_idx = -1;
-	while ((ch = getopt_long_only(argc, argv, opts_str, lopts, &opt_idx)) != -1) {
+	while ((ch = getopt_long_only(argc, argv, opts_str, lopts,
+	    &opt_idx)) != -1) {
 restart_opts:
 		switch (opt_idx) {
 		case -1: /* Short option to index. */
-			for (opt_idx = 0; NULL != lopts[opt_idx].name; opt_idx ++) {
+			for (opt_idx = 0;
+			    NULL != lopts[opt_idx].name;
+			    opt_idx ++) {
 				if (ch == lopts[opt_idx].val)
 					goto restart_opts;
 			}
@@ -160,7 +165,9 @@ restart_opts:
 		case 1: /* verify */
 		case 2: /* write */
 			if (-1 != cmd_opts->action) {
-				fprintf(stderr, "write / read / verify - can not be combined, select one of them.\n");
+				fprintf(stderr,
+				    "write / read / verify - can not be "
+				    "combined, select one of them.\n");
 				return (EINVAL);
 			}
 			cmd_opts->action = opt_idx;
@@ -179,31 +186,41 @@ restart_opts:
 			cmd_opts->post_wr_verify = 0;
 			break;
 		case 7: /* file-offset */
-			cmd_opts->file_offset = (off_t)strh2u64(optarg, sstrlen(optarg));
+			cmd_opts->file_offset = (off_t)strh2u64(optarg,
+			    sstrlen(optarg));
 			break;
 		case 8: /* chip */
 			cmd_opts->chip_name = optarg;
 			break;
 		case 9: /* chip-id */
-			cmd_opts->chip_id = strh2u32(optarg, sstrlen(optarg));
-			cmd_opts->chip_id_size = (uint8_t)snprintf(tmbuf, sizeof(tmbuf), "%x", cmd_opts->chip_id);
-			cmd_opts->chip_id_size = ((cmd_opts->chip_id_size + 1) & ~0x01);
+			cmd_opts->chip_id = strh2u32(optarg,
+			    sstrlen(optarg));
+			cmd_opts->chip_id_size = (uint8_t)snprintf(tmbuf,
+			    sizeof(tmbuf), "%x", cmd_opts->chip_id);
+			cmd_opts->chip_id_size =
+			    ((cmd_opts->chip_id_size + 1) & ~0x01);
 			break;
 		case 10: /* addr */
-			cmd_opts->address = strh2u32(optarg, sstrlen(optarg));
+			cmd_opts->address = strh2u32(optarg,
+			    sstrlen(optarg));
 			break;
 		case 11: /* size */
-			cmd_opts->size = strh2usize(optarg, sstrlen(optarg));
+			cmd_opts->size = strh2usize(optarg,
+			    sstrlen(optarg));
 			break;
 		case 12: /* page */
-			for (i = MP_CHIP_PAGE_CODE; MP_CHIP_PAGE__COUNT__ > i; i ++) {
+			for (i = MP_CHIP_PAGE_CODE;
+			    MP_CHIP_PAGE__COUNT__ > i;
+			    i ++) {
 				if (strcasecmp(mp_chip_page_str[i], optarg))
 					continue;
 				cmd_opts->page = i;
 				break;
 			}
 			if (MP_CHIP_PAGE__COUNT__ == i) {
-				fprintf(stderr, "Unknown memory type: \"%s\".\n", optarg);
+				fprintf(stderr,
+				    "Unknown memory type: \"%s\".\n",
+				    optarg);
 				return (EINVAL);
 			}
 			break;
@@ -255,20 +272,24 @@ print_usage(const char *progname) {
 
 	for (i = 0; NULL != lopts[i].name; i ++) {
 		if (0 == lopts[i].val) {
-			fprintf(stderr, "	-%s %s\n", lopts[i].name, lopts_descr[i]);
+			fprintf(stderr, "	-%s %s\n",
+			    lopts[i].name, lopts_descr[i]);
 		} else {
-			fprintf(stderr, "	-%s, -%c %s\n", lopts[i].name, lopts[i].val, lopts_descr[i]);
+			fprintf(stderr, "	-%s, -%c %s\n",
+			    lopts[i].name, lopts[i].val, lopts_descr[i]);
 		}
 	}
 }
 
 static void
-progress_cb(minipro_p mp __unused, size_t done, size_t total, void *udata) {
+progress_cb(minipro_p mp __unused, size_t done, size_t total,
+    void *udata) {
 
 	if (done == total) {
 		printf("\r\e[K%sOK.\n", (const char*)udata);
 	} else {
-		printf("\r\e[K%s%zu / %zu bytes", (const char*)udata, done, total);
+		printf("\r\e[K%s%zu / %zu bytes",
+		    (const char*)udata, done, total);
 	}
 	fflush(stdout);
 }
@@ -282,7 +303,8 @@ main(int argc, char **argv) {
 	int fd;
 	uint32_t chip_id_type, chip_id, chip_id_rev, chip_val, buf_val;
 	uint8_t chip_id_size, *file_data = NULL, *chip_data = NULL;
-	size_t file_data_size, chip_data_size, chip_size = 0, tr_size, err_offset;
+	size_t file_data_size, chip_data_size;
+	size_t chip_size = 0, tr_size, err_offset;
 	off_t file_size;
 	char status_msg[64];
 
@@ -301,7 +323,8 @@ main(int argc, char **argv) {
 	}
 	error = chip_db_load(cmd_opts.db_file_name, 0);
 	if (0 != error) {
-		LOG_ERR_FMT(error, "Fail on chips DB load: %s", cmd_opts.db_file_name);
+		LOG_ERR_FMT(error, "Fail on chips DB load: %s",
+		    cmd_opts.db_file_name);
 		return (error);
 	}
 	printf("done.\n");
@@ -310,13 +333,17 @@ main(int argc, char **argv) {
 	if (NULL != cmd_opts.chip_name) { /* By name. */
 		chip = chip_db_get_by_name(cmd_opts.chip_name);
 		if (NULL == chip) {
-			fprintf(stderr, "Chip \"%s\" not found, try one of listed below or type: %s --db-dump | grep %s\n",
-			    cmd_opts.chip_name, basename(argv[0]), cmd_opts.chip_name);
+			fprintf(stderr,
+			    "Chip \"%s\" not found, try one of listed "
+			    "below or type: %s --db-dump | grep %s\n",
+			    cmd_opts.chip_name, basename(argv[0]),
+			    cmd_opts.chip_name);
 			chip_db_dump_flt(cmd_opts.chip_name);
 			return (-1);
 		}
 	} else if (0 != cmd_opts.chip_id_size) { /* By ID. */
-		chip = chip_db_get_by_id(cmd_opts.chip_id, cmd_opts.chip_id_size);
+		chip = chip_db_get_by_id(cmd_opts.chip_id,
+		    cmd_opts.chip_id_size);
 		if (NULL == chip) {
 			fprintf(stderr, "Chip not found.\n");
 			return (-1);
@@ -328,7 +355,8 @@ main(int argc, char **argv) {
 	}
 
 	/* Open MiniPro. */
-	error = minipro_open(MP_TL866_VID, MP_TL866_PID, (0 == cmd_opts.quiet), &mp);
+	error = minipro_open(MP_TL866_VID, MP_TL866_PID,
+	    (0 == cmd_opts.quiet), &mp);
 	if (0 != error)
 		return (error);
 	/* Check and print device info. */
@@ -341,16 +369,20 @@ main(int argc, char **argv) {
 
 	/* Check some command line options before continue. */
 	if (NULL == chip) { /* Is chip specified? */
-		fprintf(stderr, "Chip not specified, can not continue.\n");
+		fprintf(stderr,
+		    "Chip not specified, can not continue.\n");
 		error = -1;
 		goto err_out;
 	}
 	switch (cmd_opts.page) {
 	case MP_CHIP_PAGE_CODE:
 	case MP_CHIP_PAGE_DATA:
-		chip_size = ((MP_CHIP_PAGE_CODE == cmd_opts.page) ? chip->code_memory_size : chip->data_memory_size);
+		chip_size = ((MP_CHIP_PAGE_CODE == cmd_opts.page) ?
+		    chip->code_memory_size :
+		    chip->data_memory_size);
 		if (0 == chip_size) {
-			fprintf(stderr, "chip page \"%s\" size = 0 - does not exist.\n",
+			fprintf(stderr,
+			    "chip page \"%s\" size = 0 - does not exist.\n",
 			    mp_chip_page_str[cmd_opts.page]);
 			error = EINVAL;
 			goto err_out;
@@ -358,26 +390,39 @@ main(int argc, char **argv) {
 		if (0 != cmd_opts.address &&
 		    0 != cmd_opts.size) {
 			if ((cmd_opts.size - cmd_opts.address) > chip_size) {
-				fprintf(stderr, "options error: chip page \"%s\" size = %zu, (addr + size) = %zu + %zu = %zu.\n",
-				    mp_chip_page_str[cmd_opts.page], chip_size,
-				    (size_t)cmd_opts.address, cmd_opts.size,
+				fprintf(stderr,
+				    "options error: chip page \"%s\" "
+				    "size = %zu, (addr + size) = %zu + "
+				    "%zu = %zu.\n",
+				    mp_chip_page_str[cmd_opts.page],
+				    chip_size,
+				    (size_t)cmd_opts.address,
+				    cmd_opts.size,
 				    ((size_t)cmd_opts.address + cmd_opts.size));
 				error = EINVAL;
 				goto err_out;
 			}
 		} else if (0 != cmd_opts.address) {
 			if (cmd_opts.address > chip_size) {
-				fprintf(stderr, "options error: chip page \"%s\" size = %zu, addr = %zu is out of range.\n",
+				fprintf(stderr,
+				    "options error: chip page \"%s\" "
+				    "size = %zu, addr = %zu is out of "
+				    "range.\n",
 				    mp_chip_page_str[cmd_opts.page],
-				    chip_size, (size_t)cmd_opts.address);
+				    chip_size,
+				    (size_t)cmd_opts.address);
 				error = EINVAL;
 				goto err_out;
 			}
 		} else if (0 != cmd_opts.size) {
 			if (cmd_opts.size > chip_size) {
-				fprintf(stderr, "options error: chip page \"%s\" size = %zu, size = %zu is out of range.\n",
+				fprintf(stderr,
+				    "options error: chip page \"%s\" "
+				    "size = %zu, size = %zu is out of "
+				    "range.\n",
 				    mp_chip_page_str[cmd_opts.page],
-				    chip_size, cmd_opts.size);
+				    chip_size,
+				    cmd_opts.size);
 				error = EINVAL;
 				goto err_out;
 			}
@@ -388,18 +433,23 @@ main(int argc, char **argv) {
 			tr_size = cmd_opts.size;
 		}
 		if (0 == tr_size) {
-			fprintf(stderr, "Data to transfer size set to 0, nothink to do.\n");
+			fprintf(stderr,
+			    "Data to transfer size set to 0, nothink "
+			    "to do.\n");
 			error = -1;
 			goto err_out;
 		}
-		printf("Will transfer: %zu bytes, starting from: 0x%08x.\n",
+		printf("Will transfer: %zu bytes, starting from: "
+		    "0x%08x.\n",
 		    tr_size, cmd_opts.address);
 		break;
 	case MP_CHIP_PAGE_CONFIG:
 		if (0 != cmd_opts.file_offset ||
 		    0 != cmd_opts.address ||
 		    0 != cmd_opts.size) {
-			fprintf(stderr, "chip page \"%s\" does not allow to set options: file-offset, addr, size.\n",
+			fprintf(stderr,
+			    "chip page \"%s\" does not allow to set "
+			    "options: file-offset, addr, size.\n",
 			     mp_chip_page_str[MP_CHIP_PAGE_CONFIG]);
 			error = EINVAL;
 			goto err_out;
@@ -427,17 +477,28 @@ main(int argc, char **argv) {
 			goto err_out;
 		}
 		if (is_chip_id_prob_eq(chip, chip_id, chip_id_size)) {
-			printf("Chip ID OK: expected 0x%02x, got 0x%02x rev 0x%02x.\n",
+			printf("Chip ID OK: expected 0x%02x, "
+			    "got 0x%02x rev 0x%02x.\n",
 			    chip->chip_id, chip_id, chip_id_rev);
 		} else {
 			if (0 != cmd_opts.chip_id_check_no_fail) {
-				printf("WARNING: Chip ID mismatch: expected 0x%02x, got 0x%02x rev 0x%02x.\n",
-				    chip->chip_id, chip_id, chip_id_rev);
-				chip_db_print_info(chip_db_get_by_id(chip_id, chip_id_size));
+				printf("WARNING: Chip ID mismatch: "
+				    "expected 0x%02x, "
+				    "got 0x%02x rev 0x%02x.\n",
+				    chip->chip_id, chip_id,
+				    chip_id_rev);
+				chip_db_print_info(chip_db_get_by_id(
+				    chip_id, chip_id_size));
 			} else {
-				fprintf(stderr, "Invalid Chip ID: expected 0x%02x, got 0x%02x rev 0x%02x\n(use '-y' to continue anyway at your own risk).\n",
-				    chip->chip_id, chip_id, chip_id_rev);
-				chip_db_print_info(chip_db_get_by_id(chip_id, chip_id_size));
+				fprintf(stderr,
+				    "Invalid Chip ID: expected 0x%02x, "
+				    "got 0x%02x rev 0x%02x\n"
+				    "(use '-y' to continue anyway at "
+				    "your own risk).\n",
+				    chip->chip_id, chip_id,
+				    chip_id_rev);
+				chip_db_print_info(chip_db_get_by_id(
+				    chip_id, chip_id_size));
 				error = -1;
 				goto err_out;
 			}
@@ -447,11 +508,13 @@ main(int argc, char **argv) {
 	/* Do action/work. */
 	switch (cmd_opts.action) {
 	case 0: /* read. */
-		snprintf(status_msg, sizeof(status_msg), "Reading %s... ",
+		snprintf(status_msg, sizeof(status_msg),
+		    "Reading %s... ",
 		    mp_chip_page_str[cmd_opts.page]);
 		error = minipro_page_read(mp,
 		    cmd_opts.page, cmd_opts.address, tr_size,
-		    &chip_data, &chip_data_size, progress_cb, (void*)status_msg);
+		    &chip_data, &chip_data_size, progress_cb,
+		    (void*)status_msg);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on chip read.");
 			goto err_out;
@@ -460,12 +523,15 @@ main(int argc, char **argv) {
 		fd = open(cmd_opts.file_name, (O_WRONLY | O_CREAT), 0600);
 		if (-1 == fd) {
 			error = errno;
-			LOG_ERR(error, "Fail on file open for chip dump writing.");
+			LOG_ERR(error,
+			    "Fail on file open for chip dump writing.");
 			goto err_out;
 		}
-		if (chip_data_size != (size_t)pwrite(fd, chip_data, chip_data_size, cmd_opts.file_offset)) {
+		if (chip_data_size != (size_t)pwrite(fd,
+		    chip_data, chip_data_size, cmd_opts.file_offset)) {
 			error = errno;
-			LOG_ERR(error, "Fail on chip write data to file.");
+			LOG_ERR(error,
+			    "Fail on chip write data to file.");
 		}
 		close(fd);
 		break;
@@ -480,7 +546,10 @@ main(int argc, char **argv) {
 		if (file_size <= cmd_opts.file_offset ||
 		    (size_t)(file_size - cmd_opts.file_offset) < tr_size) {
 			if (0 != cmd_opts.size_error) {
-				fprintf(stderr, "Incorrect file size and offset: %zu - %zu = %zu, needed at least %zu.\n",
+				fprintf(stderr,
+				    "Incorrect file size and offset: "
+				    "%zu - %zu = %zu, needed at "
+				    "least %zu.\n",
 				    (size_t)file_size,
 				    (size_t)cmd_opts.file_offset,
 				    (size_t)(file_size - cmd_opts.file_offset),
@@ -488,7 +557,9 @@ main(int argc, char **argv) {
 				error = -1;
 				goto err_out;
 			} else if (0 == cmd_opts.size_error_no_warn) {
-				printf("Warning: Incorrect file size and offset: %zu - %zu = %zu, needed at least %zu.\n",
+				printf("Warning: Incorrect file size "
+				    "and offset: %zu - %zu = %zu, "
+				    "needed at least %zu.\n",
 				    (size_t)file_size,
 				    (size_t)cmd_opts.file_offset,
 				    (size_t)(file_size - cmd_opts.file_offset),
@@ -505,11 +576,14 @@ main(int argc, char **argv) {
 			goto err_out;
 		}
 		if (2 == cmd_opts.action) { /* write. */
-			snprintf(status_msg, sizeof(status_msg), "Writing %s... ",
+			snprintf(status_msg, sizeof(status_msg),
+			    "Writing %s... ",
 			    mp_chip_page_str[cmd_opts.page]);
 			error = minipro_page_write(mp,
-			    cmd_opts.write_flags, cmd_opts.page, cmd_opts.address,
-			    file_data, file_data_size, progress_cb, (void*)status_msg);
+			    cmd_opts.write_flags,
+			    cmd_opts.page, cmd_opts.address,
+			    file_data, file_data_size,
+			    progress_cb, (void*)status_msg);
 			if (0 != error) {
 				LOG_ERR(error, "Fail on chip write.");
 				goto err_out;
@@ -518,10 +592,13 @@ main(int argc, char **argv) {
 				break;
 		}
 		/* verify. */
-		snprintf(status_msg, sizeof(status_msg), "Verifying %s... ",
+		snprintf(status_msg, sizeof(status_msg),
+		    "Verifying %s... ",
 		    mp_chip_page_str[cmd_opts.page]);
-		error = minipro_page_verify(mp, cmd_opts.page, cmd_opts.address,
-		    file_data, file_data_size, &err_offset, &buf_val, &chip_val,
+		error = minipro_page_verify(mp,
+		    cmd_opts.page, cmd_opts.address,
+		    file_data, file_data_size,
+		    &err_offset, &buf_val, &chip_val,
 		    progress_cb, (void*)status_msg);
 		if (0 != error) {
 			LOG_ERR(error, "Fail on chip read.");
@@ -531,11 +608,17 @@ main(int argc, char **argv) {
 			switch (cmd_opts.page) {
 			case MP_CHIP_PAGE_CODE:
 			case MP_CHIP_PAGE_DATA:
-				fprintf(stderr, "\nVerification failed at 0x%02zx: 0x%02x (file) != 0x%02x (chip).\n",
+				fprintf(stderr,
+				    "\nVerification failed "
+				    "at address: 0x%02zx, "
+				    "written: 0x%02x, readed: 0x%02x.\n",
 				    err_offset, buf_val, chip_val);
 				break;
 			case MP_CHIP_PAGE_CONFIG:
-				fprintf(stderr, "\nVerification failed fuse 0x%02zx - %s: 0x%02x (file) != 0x%02x (chip).\n",
+				fprintf(stderr,
+				    "\nVerification failed "
+				    "fuse 0x%02zx - %s, "
+				    "written: 0x%02x, readed: 0x%02x.\n",
 				    err_offset,
 				    chip->fuses[err_offset].name,
 				    buf_val, chip_val);
@@ -544,7 +627,9 @@ main(int argc, char **argv) {
 		}
 		break;
 	default:
-		fprintf(stderr, "write / read / verify - not specified, nothink to do.\n");
+		fprintf(stderr,
+		    "write / read / verify - not specified, "
+		    "nothink to do.\n");
 		error = -1;
 	}
 

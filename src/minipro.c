@@ -274,7 +274,8 @@ msg_send(minipro_p mp, uint8_t *buf, size_t buf_size,
 	/* Always check sended size! */
 	if (bytes_transferred != buf_size) {
 		error = EIO;
-		MP_LOG_ERR_FMT(error, "expected %zu bytes but %zu bytes transferred.",
+		MP_LOG_ERR_FMT(error,
+		    "expected %zu bytes but %zu bytes transferred.",
 		    buf_size, bytes_transferred);
 	}
 	return (error);
@@ -284,7 +285,8 @@ static int
 msg_recv(minipro_p mp, uint8_t *buf, size_t buf_size,
     size_t *transferred) {
 
-	return (msg_transfer(mp, LIBUSB_ENDPOINT_IN, buf, buf_size, transferred));
+	return (msg_transfer(mp, LIBUSB_ENDPOINT_IN, buf, buf_size,
+	    transferred));
 }
 
 static void
@@ -295,7 +297,8 @@ msg_init(minipro_p mp, uint8_t cmd, size_t msg_size) {
 }
 
 static void
-msg_chip_hdr_gen(chip_p chip, uint8_t icsp, uint8_t *buf, size_t buf_size) {
+msg_chip_hdr_gen(chip_p chip, uint8_t icsp, uint8_t *buf,
+    size_t buf_size) {
 
 	memset(buf, 0x00, buf_size);
 	//buf[0] = 0x00;
@@ -431,10 +434,12 @@ minipro_is_version_info_ok(minipro_p mp) {
 	case MP_DEV_VER_STATUS_NORMAL:
 		break;
 	case MP_DEV_VER_STATUS_BOOTLOADER: /* Can't use the device if it's in boot mode! */
-		MP_LOG_TEXT("Bootloader mode detected, cant work with device.");
+		MP_LOG_TEXT("Bootloader mode detected, cant work with "
+		    "device.");
 		return (EPROTONOSUPPORT);
 	default:
-		MP_LOG_TEXT_FMT("Unknown device status: %"PRIu8, mp->ver.device_status);
+		MP_LOG_TEXT_FMT("Unknown device status: %"PRIu8,
+		    mp->ver.device_status);
 		return (EPROTONOSUPPORT);
 	}
 
@@ -443,40 +448,44 @@ minipro_is_version_info_ok(minipro_p mp) {
 
 void
 minipro_print_info(minipro_p mp) {
-	const char *dev_ver_str, *dev_status_str;
+	const char *dvstr, *sstr;
 	char str_buf[64];
 
 	/* Model/dev ver preprocess. */
 	switch (mp->ver.device_version) {
 	case MP_DEV_VER_TL866A:
 	case MP_DEV_VER_TL866CS:
-		dev_ver_str = minipro_dev_ver_str[mp->ver.device_version];
+		dvstr = minipro_dev_ver_str[mp->ver.device_version];
 		break;
 	default:
-		snprintf(str_buf, sizeof(str_buf), "%s (ver = %"PRIu8")",
+		snprintf(str_buf, sizeof(str_buf),
+		    "%s (ver = %"PRIu8")",
 		    minipro_dev_ver_str[MP_DEV_VER_TL866_UNKNOWN],
 		    mp->ver.device_version);
-		dev_ver_str = (const char*)str_buf;
+		dvstr = (const char*)str_buf;
 	}
 
 	/* Device status. */
 	switch (mp->ver.device_status) {
 	case MP_DEV_VER_STATUS_NORMAL:
 	case MP_DEV_VER_STATUS_BOOTLOADER:
-		dev_status_str = minipro_dev_status_str[mp->ver.device_status];
+		sstr = minipro_dev_status_str[mp->ver.device_status];
 		break;
 	default:
-		dev_status_str = minipro_dev_status_str[MP_DEV_VER_STATUS_UNKNOWN];
+		sstr = minipro_dev_status_str[MP_DEV_VER_STATUS_UNKNOWN];
 	}
 
-	printf("Minipro: %s, fw: v%02d.%"PRIu8".%"PRIu8"%s, code: %.*s, serial: %.*s, status: %"PRIu8" - %s\n",
-	    dev_ver_str,
+	printf("Minipro: %s, fw: v%02d.%"PRIu8".%"PRIu8"%s, code: "
+	    "%.*s, serial: %.*s, status: %"PRIu8" - %s\n",
+	    dvstr,
 	    mp->ver.hardware_version, mp->ver.firmware_version_major,
 	    mp->ver.firmware_version_minor,
-	    ((MP_FW_VER_MIN > ((mp->ver.firmware_version_major << 8) | mp->ver.firmware_version_minor)) ? " (newer fw avaible)" : ""),
+	    ((MP_FW_VER_MIN > ((mp->ver.firmware_version_major << 8) |
+	     mp->ver.firmware_version_minor)) ?
+	      " (newer fw avaible)" : ""),
 	    (int)sizeof(mp->ver.device_code), mp->ver.device_code,
 	    (int)sizeof(mp->ver.serial_num), mp->ver.serial_num,
-	    mp->ver.device_status, dev_status_str);
+	    mp->ver.device_status, sstr);
 }
 
 
@@ -494,14 +503,18 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 
 	if (0 == chip->read_block_size ||
 	    0 == chip->write_block_size) {
-		MP_LOG_ERR_FMT(EINVAL, "Cant handle this chip: read_block_size = %i, write_block_size = %i, zero size not allowed.",
+		MP_LOG_ERR_FMT(EINVAL,
+		    "Cant handle this chip: read_block_size = %i, "
+		    "write_block_size = %i, zero size not allowed.",
 		    chip->read_block_size,
 		    chip->write_block_size);
 		return (EINVAL);
 	}
 	if ((sizeof(mp->msg) - 7) < chip->read_block_size ||
 	    (sizeof(mp->msg) - 7) < chip->write_block_size) {
-		MP_LOG_ERR_FMT(EINVAL, "Cant handle this chip: increase msg_hdr[%zu] buf to %i and recompile.",
+		MP_LOG_ERR_FMT(EINVAL,
+		    "Cant handle this chip: increase msg_hdr[%zu] buf "
+		    "to %i and recompile.",
 		    (size_t)sizeof(mp->msg),
 		    (7 + MAX(chip->read_block_size, chip->write_block_size)));
 		return (EINVAL);
@@ -600,8 +613,10 @@ minipro_get_chip_id(minipro_p mp, uint32_t *chip_id_type,
 		return (EINVAL);
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
-	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp, MP_CMD_GET_CHIP_ID, 8, NULL));
-	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp, MP_CMD_GET_CHIP_ID,
+	    8, NULL));
+	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg),
+	    &rcvd));
 	if (2 > rcvd) {
 		error = EMSGSIZE;
 		goto err_out;
@@ -653,7 +668,8 @@ minipro_prepare_writing(minipro_p mp) {
 	msg_chip_hdr_set(mp, MP_CMD_ERASE, 15);
 	mp->msg[2] = mp->chip->write_unlock;
 	MP_RET_ON_ERR_CLEANUP(msg_send(mp, mp->msg, 15, NULL));
-	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == 10 */
+	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg),
+	    &rcvd)); /* rcvd == 10 */
 
 err_out:
 	minipro_end_transaction(mp); /* Let MP_CMD_ERASE to take an effect. */
@@ -668,7 +684,8 @@ minipro_protect_set(minipro_p mp, int val) {
 		return (EINVAL);
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
 	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
-	    ((0 != val) ? MP_CMD_PROTECT_ON : MP_CMD_PROTECT_OFF), 10, NULL));
+	    ((0 != val) ? MP_CMD_PROTECT_ON : MP_CMD_PROTECT_OFF), 10,
+	    NULL));
 
 err_out:
 	minipro_end_transaction(mp);
@@ -751,7 +768,8 @@ minipro_read_block(minipro_p mp, uint8_t cmd, uint32_t addr,
     uint8_t *buf, size_t buf_size) {
 	size_t rcvd;
 
-	if (NULL == mp || NULL == mp->chip || (sizeof(mp->msg) - 7) < buf_size)
+	if (NULL == mp || NULL == mp->chip ||
+	    (sizeof(mp->msg) - 7) < buf_size)
 		return (EINVAL);
 	msg_chip_hdr_set(mp, cmd, 18);
 	U16TO8_LITTLE((uint16_t)buf_size, &mp->msg[2]);
@@ -776,7 +794,8 @@ minipro_write_block(minipro_p mp, uint8_t cmd, uint32_t addr,
     const uint8_t *buf, size_t buf_size) {
 	minipro_status_t status;
 
-	if (NULL == mp || NULL == mp->chip || (sizeof(mp->msg) - 7) < buf_size)
+	if (NULL == mp || NULL == mp->chip ||
+	    (sizeof(mp->msg) - 7) < buf_size)
 		return (EINVAL);
 	msg_chip_hdr_set(mp, cmd, 7);
 	U16TO8_LITTLE((uint16_t)buf_size, &mp->msg[2]);
@@ -795,8 +814,8 @@ minipro_write_block(minipro_p mp, uint8_t cmd, uint32_t addr,
 	}
 	if (0 != status.error) {
 		MP_LOG_ERR_FMT(-1,
-		    "Verification failed at address 0x%04x: "
-		    "writed = 0x%02x, readed = 0x%02x",
+		    "Verification failed at address: 0x%04x, "
+		    "written = 0x%02x, readed = 0x%02x.",
 		    status.address, status.c2, status.c1);
 		return (-1);
 	}
@@ -809,11 +828,13 @@ minipro_read_fuses(minipro_p mp, uint8_t cmd,
     uint8_t *buf, size_t buf_size) {
 	size_t rcvd;
 
-	if (NULL == mp || NULL == mp->chip || (sizeof(mp->msg) - 7) < buf_size)
+	if (NULL == mp || NULL == mp->chip ||
+	    (sizeof(mp->msg) - 7) < buf_size)
 		return (EINVAL);
 	msg_chip_hdr_set(mp, cmd, 18);
 	/* Note that PICs with 1 config word will show buf_size == 2. (for pic2_fuses) */
-	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ? 0x02 : 0x01);
+	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ?
+	    0x02 : 0x01);
 	mp->msg[5] = 0x10;
 	MP_RET_ON_ERR(msg_send(mp, mp->msg, 18, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == (7 + buf_size) */
@@ -832,7 +853,8 @@ minipro_write_fuses(minipro_p mp, uint8_t cmd,
     const uint8_t *buf, size_t buf_size) {
 	size_t rcvd;
 
-	if (NULL == mp || NULL == mp->chip || (sizeof(mp->msg) - 7) < buf_size)
+	if (NULL == mp || NULL == mp->chip ||
+	    (sizeof(mp->msg) - 7) < buf_size)
 		return (EINVAL);
 	/* Perform actual writing. */
 	switch ((0xf0 & cmd)) {
@@ -855,7 +877,8 @@ minipro_write_fuses(minipro_p mp, uint8_t cmd,
 	/* The device waits us to get the status now. */
 	msg_chip_hdr_set(mp, cmd, 18);
 	/* Note that PICs with 1 config word will show buf_size == 2. (for pic2_fuses) */
-	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ? 0x02 : 0x01);
+	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ?
+	    0x02 : 0x01);
 	memcpy(&mp->msg[7], buf, buf_size);
 	MP_RET_ON_ERR(msg_send(mp, mp->msg, 18, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
@@ -879,7 +902,8 @@ minipro_read_buf(minipro_p mp, uint8_t cmd,
 	uint32_t blk_size, offset;
 	size_t to_read = buf_size, tm;
 
-	if (NULL == mp || NULL == mp->chip || NULL == buf || 0 == buf_size)
+	if (NULL == mp || NULL == mp->chip || NULL == buf ||
+	    0 == buf_size)
 		return (EINVAL);
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
@@ -904,7 +928,8 @@ minipro_read_buf(minipro_p mp, uint8_t cmd,
 
 	/* Read alligned blocks. */
 	while (blk_size <= to_read) {
-		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read), buf_size, udata);
+		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read),
+		    buf_size, udata);
 		MP_RET_ON_ERR_CLEANUP(minipro_read_block(mp, cmd, addr,
 		    buf, blk_size));
 		addr += blk_size;
@@ -914,7 +939,8 @@ minipro_read_buf(minipro_p mp, uint8_t cmd,
 
 	/* Last block part / post alligment. */
 	if (0 != to_read) {
-		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read), buf_size, udata);
+		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read),
+		    buf_size, udata);
 		MP_RET_ON_ERR_CLEANUP(minipro_read_block(mp, cmd, addr,
 		    mp->read_block_buf, blk_size));
 		memcpy(buf, mp->read_block_buf, to_read);
@@ -936,7 +962,8 @@ minipro_verify_buf(minipro_p mp, uint8_t cmd,
 	uint32_t blk_size, offset;
 	size_t to_read = buf_size, tm, diff_off;
 
-	if (NULL == mp || NULL == mp->chip || NULL == buf || 0 == buf_size ||
+	if (NULL == mp || NULL == mp->chip ||
+	    NULL == buf || 0 == buf_size ||
 	    NULL == err_offset || NULL == buf_val || NULL == chip_val)
 		return (EINVAL);
 
@@ -954,7 +981,8 @@ minipro_verify_buf(minipro_p mp, uint8_t cmd,
 		MP_RET_ON_ERR_CLEANUP(minipro_read_block(mp, cmd, addr,
 		    mp->read_block_buf, blk_size));
 		tm = MIN((blk_size - offset), to_read); /* Data size to store in buf. */
-		diff_off = memcmp_idx(buf, (mp->read_block_buf + offset), tm);
+		diff_off = memcmp_idx(buf,
+		    (mp->read_block_buf + offset), tm);
 		if (diff_off != tm) {
 			/* movemem() for get (*chip_val) at diff pos offset. */
 			memmove(mp->read_block_buf,
@@ -968,7 +996,8 @@ minipro_verify_buf(minipro_p mp, uint8_t cmd,
 
 	/* Read alligned blocks. */
 	while (blk_size <= to_read) {
-		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read), buf_size, udata);
+		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read),
+		    buf_size, udata);
 		MP_RET_ON_ERR_CLEANUP(minipro_read_block(mp, cmd, addr,
 		    mp->read_block_buf, blk_size));
 		diff_off = memcmp_idx(buf, mp->read_block_buf, blk_size);
@@ -981,7 +1010,8 @@ minipro_verify_buf(minipro_p mp, uint8_t cmd,
 
 	/* Last block part / post alligment. */
 	if (0 != to_read) {
-		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read), buf_size, udata);
+		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_read),
+		    buf_size, udata);
 		MP_RET_ON_ERR_CLEANUP(minipro_read_block(mp, cmd, addr,
 		    mp->read_block_buf, blk_size));
 		diff_off = memcmp_idx(buf, mp->read_block_buf, to_read);
@@ -1014,7 +1044,8 @@ minipro_write_buf(minipro_p mp, uint8_t cmd,
 	uint32_t blk_size, offset;
 	size_t to_write = buf_size, tm;
 
-	if (NULL == mp || NULL == mp->chip || NULL == buf || 0 == buf_size)
+	if (NULL == mp || NULL == mp->chip ||
+	    NULL == buf || 0 == buf_size)
 		return (EINVAL);
 
 	/* Read block cmd. */
@@ -1060,7 +1091,8 @@ minipro_write_buf(minipro_p mp, uint8_t cmd,
 
 	/* Write alligned blocks. */
 	while (blk_size <= to_write) {
-		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_write), buf_size, udata);
+		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_write),
+		    buf_size, udata);
 		MP_RET_ON_ERR_CLEANUP(minipro_write_block(mp, cmd, addr,
 		    buf, blk_size));
 		addr += blk_size;
@@ -1070,11 +1102,13 @@ minipro_write_buf(minipro_p mp, uint8_t cmd,
 
 	/* Last block part / post alligment. */
 	if (0 != to_write) {
-		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_write), buf_size, udata);
+		MP_PROGRESS_UPDATE(cb, mp, (buf_size - to_write),
+		    buf_size, udata);
 		/* Read tail of last block. */
 		MP_RET_ON_ERR(minipro_end_transaction(mp));
 		MP_RET_ON_ERR(minipro_read_buf(mp, read_cmd,
-		    (addr + (uint32_t)to_write), (mp->write_block_buf + to_write),
+		    (addr + (uint32_t)to_write),
+		    (mp->write_block_buf + to_write),
 		    (blk_size - to_write), NULL, NULL));
 		/* Set data and write. */
 		memcpy(mp->write_block_buf, buf, to_write);
@@ -1121,7 +1155,9 @@ minipro_fuses_read(minipro_p mp,
 		MP_PROGRESS_UPDATE(cb, mp, i, count, udata);
 		if (fuses[i].cmd < cmd) {
 			error = EINVAL;
-			MP_LOG_ERR_FMT(error, "fuse_decls are not sorted: item %zu = 0x%02x is less then 0x%02x.",
+			MP_LOG_ERR_FMT(error,
+			    "fuse_decls are not sorted: item %zu = "
+			    "0x%02x is less then 0x%02x.",
 			    i, fuses[i].cmd, cmd);
 			goto err_out;
 		}
@@ -1129,13 +1165,16 @@ minipro_fuses_read(minipro_p mp,
 		if ((i + 1) < count &&
 		    cmd >= fuses[(i + 1)].cmd)
 			continue;
-		MP_RET_ON_ERR_CLEANUP(minipro_read_fuses(mp, cmd, tmbuf, size));
+		MP_RET_ON_ERR_CLEANUP(minipro_read_fuses(mp, cmd, tmbuf,
+		    size));
 		/* Unpacking readed tmbuf to fuse_decls with same cmd. */
 		for (j = 1; j < count; j ++) {
 			if (cmd != fuses[j].cmd)
 				continue;
-			val = U8TO32n_LITTLE(&tmbuf[fuses[j].offset], fuses[j].size);
-			used += (size_t)snprintf((char*)(buf + used), (buf_size - used),
+			val = U8TO32n_LITTLE(&tmbuf[fuses[j].offset],
+			    fuses[j].size);
+			used += (size_t)snprintf((char*)(buf + used),
+			    (buf_size - used),
 			    "%s = 0x%04x\n",
 			    fuses[j].name, val);
 		}
@@ -1183,7 +1222,9 @@ minipro_fuses_verify(minipro_p mp, const uint8_t *buf, size_t buf_size,
 		MP_PROGRESS_UPDATE(cb, mp, i, count, udata);
 		if (fuses[i].cmd < cmd) {
 			error = EINVAL;
-			MP_LOG_ERR_FMT(error, "fuse_decls are not sorted: item %zu = 0x%02x is less then 0x%02x.",
+			MP_LOG_ERR_FMT(error,
+			    "fuse_decls are not sorted: item %zu = "
+			    "0x%02x is less then 0x%02x.",
 			    i, fuses[i].cmd, cmd);
 			goto err_out;
 		}
@@ -1191,16 +1232,20 @@ minipro_fuses_verify(minipro_p mp, const uint8_t *buf, size_t buf_size,
 		if ((i + 1) < count &&
 		    cmd >= fuses[(i + 1)].cmd)
 			continue;
-		MP_RET_ON_ERR_CLEANUP(minipro_read_fuses(mp, cmd, tmbuf, size));
+		MP_RET_ON_ERR_CLEANUP(minipro_read_fuses(mp, cmd, tmbuf,
+		    size));
 		/* Unpacking readed tmbuf to fuse_decls with same cmd. */
 		for (j = 1; j < count; j ++) {
 			if (cmd != fuses[j].cmd)
 				continue;
-			val = U8TO32n_LITTLE(&tmbuf[fuses[j].offset], fuses[j].size);
+			val = U8TO32n_LITTLE(&tmbuf[fuses[j].offset],
+			    fuses[j].size);
 			error = buf_get_named_line_val32(buf, buf_size,
 			    fuses[j].name, strlen(fuses[j].name), &valb);
 			if (0 != error) {
-				MP_LOG_ERR_FMT(error, "value for item %zu - \"%s\" not found.",
+				MP_LOG_ERR_FMT(error,
+				    "value for item %zu - \"%s\" "
+				    "not found.",
 				    j, fuses[j].name);
 				goto err_out;
 			}
@@ -1253,7 +1298,9 @@ minipro_fuses_write(minipro_p mp, const uint8_t *buf, size_t buf_size,
 		MP_PROGRESS_UPDATE(cb, mp, i, count, udata);
 		if (fuses[i].cmd < cmd) {
 			error = EINVAL;
-			MP_LOG_ERR_FMT(error, "fuse_decls are not sorted: item %zu (\"%s\") = 0x%02x is less then 0x%02x.",
+			MP_LOG_ERR_FMT(error,
+			    "fuse_decls are not sorted: item %zu "
+			    "(\"%s\") = 0x%02x is less then 0x%02x.",
 			    i, fuses[i].name, fuses[i].cmd, cmd);
 			goto err_out;
 		}
@@ -1269,13 +1316,17 @@ minipro_fuses_write(minipro_p mp, const uint8_t *buf, size_t buf_size,
 			error = buf_get_named_line_val32(buf, buf_size,
 			    fuses[j].name, strlen(fuses[j].name), &val);
 			if (0 != error) {
-				MP_LOG_ERR_FMT(error, "value for item %zu - \"%s\" not found.",
+				MP_LOG_ERR_FMT(error,
+				    "value for item %zu - \"%s\" "
+				    "not found.",
 				    j, fuses[j].name);
 				goto err_out;
 			}
-			U32TO8n_LITTLE(val, fuses[j].size, &tmbuf[fuses[j].offset]);
+			U32TO8n_LITTLE(val, fuses[j].size,
+			    &tmbuf[fuses[j].offset]);
 		}
-		MP_RET_ON_ERR_CLEANUP(minipro_write_fuses(mp, cmd, tmbuf, size));
+		MP_RET_ON_ERR_CLEANUP(minipro_write_fuses(mp, cmd,
+		    tmbuf, size));
 		cmd = fuses[(i + 1)].cmd;
 		size = 0;
 	}
@@ -1290,25 +1341,30 @@ err_out:
 
 int
 minipro_page_read(minipro_p mp, int page, uint32_t address, size_t size,
-    uint8_t **buf, size_t *buf_size, minipro_progress_cb cb, void *udata) {
+    uint8_t **buf, size_t *buf_size,
+    minipro_progress_cb cb, void *udata) {
 	int error;
 	uint8_t *buffer = NULL;
 	size_t chip_size;
 
-	if (NULL == mp || NULL == mp->chip || NULL == buf || NULL == buf_size)
+	if (NULL == mp || NULL == mp->chip ||
+	    NULL == buf || NULL == buf_size)
 		return (EINVAL);
 
 	switch (page) {
 	case MP_CHIP_PAGE_CODE:
 	case MP_CHIP_PAGE_DATA:
-		chip_size = ((MP_CHIP_PAGE_CODE == page) ? mp->chip->code_memory_size : mp->chip->data_memory_size);
+		chip_size = ((MP_CHIP_PAGE_CODE == page) ?
+		    mp->chip->code_memory_size :
+		    mp->chip->data_memory_size);
 		if (0 == chip_size ||
 		    ((size_t)address + size) > chip_size)
 			return (EINVAL); /* No page or out of range. */
 		buffer = malloc(size + sizeof(void*));
 		if (NULL == buffer)
 			return (ENOMEM);
-		error = minipro_read_buf(mp, mp_chip_page_read_cmd[page],
+		error = minipro_read_buf(mp,
+		    mp_chip_page_read_cmd[page],
 		    address, buffer, size, cb, udata);
 		break;
 	case MP_CHIP_PAGE_CONFIG:
@@ -1317,8 +1373,8 @@ minipro_page_read(minipro_p mp, int page, uint32_t address, size_t size,
 		buffer = malloc(MP_FUSES_BUF_SIZE_MAX);
 		if (NULL == buffer)
 			return (ENOMEM);
-		error = minipro_fuses_read(mp, buffer, MP_FUSES_BUF_SIZE_MAX,
-		    &size, cb, udata);
+		error = minipro_fuses_read(mp, buffer,
+		    MP_FUSES_BUF_SIZE_MAX, &size, cb, udata);
 		break;
 	default:
 		return (EINVAL);
@@ -1343,18 +1399,22 @@ minipro_page_verify(minipro_p mp, int page, uint32_t address,
 	int error;
 	size_t chip_size;
 
-	if (NULL == mp || NULL == mp->chip || NULL == buf || 0 == buf_size ||
+	if (NULL == mp || NULL == mp->chip ||
+	    NULL == buf || 0 == buf_size ||
 	    NULL == err_offset || NULL == buf_val || NULL == chip_val)
 		return (EINVAL);
 
 	switch (page) {
 	case MP_CHIP_PAGE_CODE:
 	case MP_CHIP_PAGE_DATA:
-		chip_size = ((MP_CHIP_PAGE_CODE == page) ? mp->chip->code_memory_size : mp->chip->data_memory_size);
+		chip_size = ((MP_CHIP_PAGE_CODE == page) ?
+		    mp->chip->code_memory_size :
+		    mp->chip->data_memory_size);
 		if (0 == chip_size ||
 		    ((size_t)address + buf_size) > chip_size)
 			return (EINVAL); /* No page or out of range. */
-		error = minipro_verify_buf(mp, mp_chip_page_read_cmd[page],
+		error = minipro_verify_buf(mp,
+		    mp_chip_page_read_cmd[page],
 		    address, buf, buf_size,
 		    err_offset, buf_val, chip_val, cb, udata);
 		break;
@@ -1372,19 +1432,24 @@ minipro_page_verify(minipro_p mp, int page, uint32_t address,
 }
 
 int
-minipro_page_write(minipro_p mp, uint32_t flags, int page, uint32_t address,
-    const uint8_t *buf, size_t buf_size, minipro_progress_cb cb, void *udata) {
+minipro_page_write(minipro_p mp, uint32_t flags,
+    int page, uint32_t address,
+    const uint8_t *buf, size_t buf_size,
+    minipro_progress_cb cb, void *udata) {
 	int error;
 	size_t chip_size;
 
-	if (NULL == mp || NULL == mp->chip || NULL == buf || 0 == buf_size)
+	if (NULL == mp || NULL == mp->chip ||
+	    NULL == buf || 0 == buf_size)
 		return (EINVAL);
 
 	/* Pre checks. */
 	switch (page) {
 	case MP_CHIP_PAGE_CODE:
 	case MP_CHIP_PAGE_DATA:
-		chip_size = ((MP_CHIP_PAGE_CODE == page) ? mp->chip->code_memory_size : mp->chip->data_memory_size);
+		chip_size = ((MP_CHIP_PAGE_CODE == page) ?
+		    mp->chip->code_memory_size :
+		    mp->chip->data_memory_size);
 		if (0 == chip_size ||
 		    ((size_t)address + buf_size) > chip_size)
 			return (EINVAL); /* No page or out of range. */
@@ -1418,11 +1483,13 @@ minipro_page_write(minipro_p mp, uint32_t flags, int page, uint32_t address,
 	switch (page) {
 	case MP_CHIP_PAGE_CODE:
 	case MP_CHIP_PAGE_DATA:
-		error = minipro_write_buf(mp, mp_chip_page_write_cmd[page],
+		error = minipro_write_buf(mp,
+		    mp_chip_page_write_cmd[page],
 		    address, buf, buf_size, cb, udata);
 		break;
 	case MP_CHIP_PAGE_CONFIG:
-		error = minipro_fuses_write(mp, buf, buf_size, cb, udata);
+		error = minipro_fuses_write(mp, buf, buf_size,
+		    cb, udata);
 		break;
 	}
 
