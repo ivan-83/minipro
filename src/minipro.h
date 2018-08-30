@@ -130,6 +130,7 @@ int	minipro_protect_set(minipro_p mp, int val);
 int	minipro_unlock_tsop48(minipro_p mp, uint8_t *type);
 
 int	minipro_get_status(minipro_p mp, minipro_status_p status);
+int	minipro_overcurrency_chk(minipro_p mp);
 
 int	minipro_read_block(minipro_p mp, uint8_t cmd, uint32_t addr,
 	    uint8_t *buf, size_t buf_size);
