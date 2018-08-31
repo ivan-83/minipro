@@ -336,10 +336,9 @@ chip_db_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 	}
 
 	/* Store name. */
-	chip->name = zalloc((sname_sz + sizeof(void*)));
+	chip->name = mem_dup2(sname, sname_sz, 1);
 	if (NULL == chip->name)
 		return (ENOMEM);
-	memcpy((void*)chip->name, sname, sname_sz);
 
 	return (0);
 }
@@ -353,7 +352,7 @@ chip_db_free(void) {
 		return;
 
 	for (chip = chips_db; NULL != chip->name; chip ++) {
-		free((void*)chip->name);
+		free(chip->name);
 	}
 	free(chips_db);
 	chips_db = NULL;

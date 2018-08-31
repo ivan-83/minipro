@@ -14,7 +14,7 @@ typedef struct fuse_decl_s {
 
 
 typedef struct chip_s {
-	const char	*name;
+	char		*name;
 	uint8_t		protocol_id;
 	uint8_t		variant;
 	uint32_t	addressing_mode;
