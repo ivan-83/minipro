@@ -1032,7 +1032,7 @@ minipro_read_block(minipro_p mp, uint8_t cmd, uint32_t addr,
 	msg_chip_hdr_set(mp, cmd, 18);
 	U16TO8_LITTLE((uint16_t)buf_size, &mp->msg[2]);
 	/* Translating address to protocol-specific. */
-	if (0 != (0x2000 & mp->chip->opts4)) {
+	if (0 != (CHIP_OPT4_ADDR_SCALE & mp->chip->opts4)) {
 		addr = (addr >> 1);
 	}
 	U24TO8_LITTLE(addr, &mp->msg[4]);
@@ -1056,7 +1056,7 @@ minipro_write_block(minipro_p mp, uint8_t cmd, uint32_t addr,
 		return (EINVAL);
 	msg_chip_hdr_set(mp, cmd, 7);
 	U16TO8_LITTLE((uint16_t)buf_size, &mp->msg[2]);
-	if (0 != (0x2000 & mp->chip->opts4)) {
+	if (0 != (CHIP_OPT4_ADDR_SCALE & mp->chip->opts4)) {
 		addr = (addr >> 1);
 	}
 	U24TO8_LITTLE(addr, &mp->msg[4]);
@@ -1722,12 +1722,13 @@ minipro_page_write(minipro_p mp, uint32_t flags,
 	MP_RET_ON_ERR(error);
 
 	/* Erase before writing. */
-	if (0 == (MP_PAGE_WR_F_NO_ERASE & flags)) {
+	if (0 == (MP_PAGE_WR_F_NO_ERASE & flags) &&
+	    0 != (CHIP_OPT4_ERASE & mp->chip->opts4)) {
 		MP_RET_ON_ERR(minipro_erase(mp));
 	}
 
 	/* Turn off protection before writing. */
-	if (0 != (0xc000 & mp->chip->opts4) &&
+	if (0 != (CHIP_OPT4_PROTECTION & mp->chip->opts4) &&
 	    0 == (MP_PAGE_WR_F_PRE_NO_UNPROTECT & flags)) {
 		minipro_protect_set(mp, 0);
 	}
@@ -1747,7 +1748,7 @@ minipro_page_write(minipro_p mp, uint32_t flags,
 	}
 
 	/* Turn on protection after writing. */
-	if (0 != (0xc000 & mp->chip->opts4) &&
+	if (0 != (CHIP_OPT4_PROTECTION & mp->chip->opts4) &&
 	    0 == (MP_PAGE_WR_F_POST_NO_PROTECT & flags)) {
 		minipro_protect_set(mp, 1);
 	}

@@ -38,7 +38,16 @@ typedef struct chip_s {
 
 #define CHIP_NAME_MAX		64	/* Max chip name len. */
 
-#define CHIP_OPT4_TSOP48	0x01002078
+#define CHIP_OPT4_TSOP48		0x01002078
+#define CHIP_OPT4_SIZE_UNITS_MASK	0xff000000
+#define CHIP_OPT4_SIZE_UNITS(__opts4)	((__opts4) >> 24)
+#define CHIP_OPT4_SIZE_BYTES			0x00
+#define CHIP_OPT4_SIZE_WORDS			0x01
+#define CHIP_OPT4_SIZE_BITS			0x02
+#define CHIP_OPT4_ERASE			0x00000010
+#define CHIP_OPT4_CHIP_ID		0x00000020
+#define CHIP_OPT4_ADDR_SCALE		0x00002000
+#define CHIP_OPT4_PROTECTION		0x0000c000
 
 
 typedef struct chip_id_map_s {

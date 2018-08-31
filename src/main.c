@@ -485,8 +485,8 @@ main(int argc, char **argv) {
 
 	/* Verify Chip ID (if applicable). */
 	if (0 == cmd_opts.chip_id_check_disable &&
-	    chip->chip_id_size &&
-	    chip->chip_id) {
+	    ((0 != chip->chip_id_size && 0 != chip->chip_id) ||
+	     0 != (CHIP_OPT4_CHIP_ID & chip->opts4))) {
 		error = minipro_get_chip_id(mp, &chip_id_type,
 		    &chip_id, &chip_id_size, &chip_id_rev);
 		if (0 != error) {

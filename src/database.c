@@ -326,8 +326,8 @@ chip_db_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 	 * For these controlers (almost 600 devices) the opts3 is an
 	 * index in this table.
 	 */
-	if (0 == chip->chip_id &&
-	    0 != chip->chip_id_size) {
+	if ((0 == chip->chip_id && 0 != chip->chip_id_size) ||
+	    0 != (CHIP_OPT4_CHIP_ID & chip->opts4)) {
 		id_map = chip_id_map(chip->opts3);
 		debug_break_if(NULL == id_map);
 		if (NULL != id_map) {
@@ -442,6 +442,8 @@ chip_db_get_by_id(const uint32_t chip_id, const uint8_t chip_id_size) {
 	if (NULL == chips_db || 0 == chip_id_size)
 		return (NULL);
 	for (chip = chips_db; NULL != chip->name; chip ++) {
+		if (0 == (CHIP_OPT4_CHIP_ID & chip->opts4))
+			continue;
 		if (is_chip_id_eq(chip, chip_id, chip_id_size))
 			return (chip);
 	}
@@ -491,19 +493,19 @@ chip_db_print_info(const chip_p chip) {
 
 	/* Memory shape */
 	printf("Memory: ");
-	switch ((0xff000000 & chip->opts4)) {
-	case 0x00000000:
+	switch (CHIP_OPT4_SIZE_UNITS(chip->opts4)) {
+	case CHIP_OPT4_SIZE_BYTES:
 		printf("%d Bytes", chip->code_memory_size);
 		break;
-	case 0x01000000:
+	case CHIP_OPT4_SIZE_WORDS:
 		printf("%d Words", (chip->code_memory_size / 2));
 		break;
-	case 0x02000000:
+	case CHIP_OPT4_SIZE_BITS:
 		printf("%d Bits", chip->code_memory_size);
 		break;
 	default:
 		printf(" unknown memory shape: 0x%x\n",
-		    (0xff000000 & chip->opts4));
+		    CHIP_OPT4_SIZE_UNITS(chip->opts4));
 	}
 	if (chip->data_memory_size) {
 		printf(" + %d Bytes", chip->data_memory_size);
