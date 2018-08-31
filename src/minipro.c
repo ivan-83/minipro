@@ -597,19 +597,14 @@ minipro_hardware_check_pins(minipro_p mp, mp_zif_pins_p pins,
 	if (NULL == mp || NULL == pins || NULL == errors_count)
 		return (EINVAL);
 
-	/* Reset pin drivers state. */
-	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
-	    MP_CMD_RST_PIN_DRIVERS, 10, NULL));
-
 	/* Testing pins drivers. */
 	for (i = 0; i < pins_count; i ++) {
+		/* Reset pin drivers state. */
+		MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
+		    MP_CMD_RST_PIN_DRIVERS, 10, NULL));
+		/* Set pin state. */
 		msg_chip_hdr_set(mp, MP_CMD_SET_LATCH, 32);
-		if (0 == is_gnd) {
-			mp->msg[7] = 1; /* This is number of latches we want to set (1-8). */
-		} else {
-			mp->msg[7] = ((pins[i].latch == 9) ?
-			    2 : 1); /* Special handle for pin GND20. */
-		}
+		mp->msg[7] = 1; /* This is number of latches we want to set (1-8). */
 		mp->msg[8] = pins[i].oe; /* This is output enable we want to select(/OE) (1=OE_VPP, 2=OE_VCC+GND, 3=BOTH). */
 		mp->msg[9] = pins[i].latch; /* This is latch number we want to set (0-7; see the schematic diagram). */
 		mp->msg[10] = pins[i].mask; /* This is latch value we want to write (see the schematic diagram). */
@@ -617,7 +612,7 @@ minipro_hardware_check_pins(minipro_p mp, mp_zif_pins_p pins,
 		/* Wait. */
 		usleep(MP_SET_LATCH_DELAY);
 		/* Read pins status. */
-		MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+		MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
 		    MP_CMD_READ_ZIF_PINS, 18, NULL));
 		MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg,
 		    sizeof(mp->msg), &rcvd));
@@ -665,10 +660,6 @@ minipro_hardware_check(minipro_p mp, size_t *errors_count) {
 
 	(*errors_count) = 0;
 
-	/* Reset pin drivers state. */
-	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
-	    MP_CMD_RST_PIN_DRIVERS, 10, NULL));
-
 	MP_LOG_TEXT("Testing 16 VPP pin drivers...");
 	MP_RET_ON_ERR(minipro_hardware_check_pins(mp,
 	    vpp_pins, SIZEOF(vpp_pins), 0, errors_count));
@@ -682,6 +673,10 @@ minipro_hardware_check(minipro_p mp, size_t *errors_count) {
 	    gnd_pins, SIZEOF(gnd_pins), 1, errors_count));
 
 	/* Testing VPP overcurrent protection. */
+	/* Reset pin drivers state. */
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
+	    MP_CMD_RST_PIN_DRIVERS, 10, NULL));
+	/* Set pin state. */
 	msg_chip_hdr_set(mp, MP_CMD_SET_LATCH, 32);
 	mp->msg[7] = 2; /* We will set two latches. */
 	mp->msg[8] = MP_OE_ALL; /* Both OE_VPP and OE_GND active. */
@@ -693,7 +688,7 @@ minipro_hardware_check(minipro_p mp, size_t *errors_count) {
 	/* Wait. */
 	usleep(MP_SET_LATCH_DELAY);
 	/* Read OVC status. */
-	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
 	    MP_CMD_READ_ZIF_PINS, 18, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg,
 	    sizeof(mp->msg), &rcvd));
@@ -706,6 +701,10 @@ minipro_hardware_check(minipro_p mp, size_t *errors_count) {
 	}
 
 	/* Testing VCC overcurrent protection. */
+	/* Reset pin drivers state. */
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
+	    MP_CMD_RST_PIN_DRIVERS, 10, NULL));
+	/* Set pin state. */
 	msg_chip_hdr_set(mp, MP_CMD_SET_LATCH, 32);
 	mp->msg[7] = 2; /* We will set two latches. */
 	mp->msg[8] = MP_OE_VCC_GND; /* OE GND is active. */
@@ -717,7 +716,7 @@ minipro_hardware_check(minipro_p mp, size_t *errors_count) {
 	/* Wait. */
 	usleep(MP_SET_LATCH_DELAY);
 	/* Read OVC status. */
-	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
 	    MP_CMD_READ_ZIF_PINS, 18, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg,
 	    sizeof(mp->msg), &rcvd));
