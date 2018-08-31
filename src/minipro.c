@@ -3,6 +3,7 @@
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h> /* snprintf, fprintf */
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <errno.h>
 #include <libusb.h>
@@ -39,6 +40,110 @@ static const uint8_t mp_chip_page_write_cmd[] = {
 	0,
 	0
 };
+
+
+typedef struct minipro_zif_pins_s {
+	uint8_t pin;
+	uint8_t latch;
+	uint8_t oe;
+	uint8_t mask;
+} mp_zif_pins_t, *mp_zif_pins_p;
+
+enum VPP_PINS {
+	VPP1,	VPP2,	VPP3,	VPP4,	VPP9,	VPP10,	VPP30,	VPP31,
+	VPP32,	VPP33,	VPP34,	VPP36,	VPP37,	VPP38,	VPP39,	VPP40
+};
+
+enum VCC_PINS {
+	VCC1,	VCC2,	VCC3,	VCC4,	VCC5,	VCC6,	VCC7,	VCC8,
+	VCC9,	VCC10,	VCC11,	VCC12,	VCC13,	VCC21,	VCC30,	VCC32,
+	VCC33,	VCC34,	VCC35,	VCC36,	VCC37,	VCC38,	VCC39,	VCC40
+};
+
+enum GND_PINS {
+	GND1,	GND2,	GND3,	GND4,	GND5,	GND6,	GND7,	GND8,
+	GND9,	GND10,	GND11,	GND12,	GND14,	GND16,	GND20,	GND30,
+	GND31,	GND32,	GND34,	GND35,	GND36,	GND37,	GND38,	GND39,
+	GND40
+};
+
+/* 16 VPP pins. NPN trans. mask */
+static mp_zif_pins_t vpp_pins[] = {
+	{ .pin =  1, .latch = 1, .oe = 1, .mask = 0x04 },
+	{ .pin =  2, .latch = 1, .oe = 1, .mask = 0x08 },
+	{ .pin =  3, .latch = 0, .oe = 1, .mask = 0x04 },
+	{ .pin =  4, .latch = 0, .oe = 1, .mask = 0x08 },
+	{ .pin =  9, .latch = 0, .oe = 1, .mask = 0x20 },
+	{ .pin = 10, .latch = 0, .oe = 1, .mask = 0x10 },
+	{ .pin = 30, .latch = 1, .oe = 1, .mask = 0x01 },
+	{ .pin = 31, .latch = 0, .oe = 1, .mask = 0x01 },
+	{ .pin = 32, .latch = 1, .oe = 1, .mask = 0x80 },
+	{ .pin = 33, .latch = 0, .oe = 1, .mask = 0x40 },
+	{ .pin = 34, .latch = 0, .oe = 1, .mask = 0x02 },
+	{ .pin = 36, .latch = 1, .oe = 1, .mask = 0x02 },
+	{ .pin = 37, .latch = 0, .oe = 1, .mask = 0x80 },
+	{ .pin = 38, .latch = 1, .oe = 1, .mask = 0x40 },
+	{ .pin = 39, .latch = 1, .oe = 1, .mask = 0x20 },
+	{ .pin = 40, .latch = 1, .oe = 1, .mask = 0x10 }
+};
+
+/* 24 VCC Pins. PNP trans. mask */
+static mp_zif_pins_t vcc_pins[] = {
+	{ .pin =  1, .latch = 2, .oe = 2, .mask = 0x7f },
+	{ .pin =  2, .latch = 2, .oe = 2, .mask = 0xef },
+	{ .pin =  3, .latch = 2, .oe = 2, .mask = 0xdf },
+	{ .pin =  4, .latch = 3, .oe = 2, .mask = 0xfe },
+	{ .pin =  5, .latch = 2, .oe = 2, .mask = 0xfb },
+	{ .pin =  6, .latch = 3, .oe = 2, .mask = 0xfb },
+	{ .pin =  7, .latch = 4, .oe = 2, .mask = 0xbf },
+	{ .pin =  8, .latch = 4, .oe = 2, .mask = 0xfd },
+	{ .pin =  9, .latch = 4, .oe = 2, .mask = 0xfb },
+	{ .pin = 10, .latch = 4, .oe = 2, .mask = 0xf7 },
+	{ .pin = 11, .latch = 4, .oe = 2, .mask = 0xfe },
+	{ .pin = 12, .latch = 4, .oe = 2, .mask = 0x7f },
+	{ .pin = 13, .latch = 4, .oe = 2, .mask = 0xef },
+	{ .pin = 21, .latch = 4, .oe = 2, .mask = 0xdf },
+	{ .pin = 30, .latch = 3, .oe = 2, .mask = 0xbf },
+	{ .pin = 32, .latch = 3, .oe = 2, .mask = 0xfd },
+	{ .pin = 33, .latch = 3, .oe = 2, .mask = 0xdf },
+	{ .pin = 34, .latch = 3, .oe = 2, .mask = 0xf7 },
+	{ .pin = 35, .latch = 3, .oe = 2, .mask = 0xef },
+	{ .pin = 36, .latch = 3, .oe = 2, .mask = 0x7f },
+	{ .pin = 37, .latch = 2, .oe = 2, .mask = 0xf7 },
+	{ .pin = 38, .latch = 2, .oe = 2, .mask = 0xbf },
+	{ .pin = 39, .latch = 2, .oe = 2, .mask = 0xfe },
+	{ .pin = 40, .latch = 2, .oe = 2, .mask = 0xfd }
+};
+
+/* 25 GND Pins. NPN trans. mask */
+static mp_zif_pins_t gnd_pins[] = {
+	{ .pin =  1, .latch = 6, .oe = 2, .mask = 0x04 },
+	{ .pin =  2, .latch = 6, .oe = 2, .mask = 0x08 },
+	{ .pin =  3, .latch = 6, .oe = 2, .mask = 0x40 },
+	{ .pin =  4, .latch = 6, .oe = 2, .mask = 0x02 },
+	{ .pin =  5, .latch = 5, .oe = 2, .mask = 0x04 },
+	{ .pin =  6, .latch = 5, .oe = 2, .mask = 0x08 },
+	{ .pin =  7, .latch = 5, .oe = 2, .mask = 0x40 },
+	{ .pin =  8, .latch = 5, .oe = 2, .mask = 0x02 },
+	{ .pin =  9, .latch = 5, .oe = 2, .mask = 0x01 },
+	{ .pin = 10, .latch = 5, .oe = 2, .mask = 0x80 },
+	{ .pin = 11, .latch = 5, .oe = 2, .mask = 0x10 },
+	{ .pin = 12, .latch = 5, .oe = 2, .mask = 0x20 },
+	{ .pin = 14, .latch = 7, .oe = 2, .mask = 0x08 },
+	{ .pin = 16, .latch = 7, .oe = 2, .mask = 0x40 },
+	{ .pin = 20, .latch = 9, .oe = 2, .mask = 0x01 },
+	{ .pin = 30, .latch = 7, .oe = 2, .mask = 0x04 },
+	{ .pin = 31, .latch = 6, .oe = 2, .mask = 0x01 },
+	{ .pin = 32, .latch = 6, .oe = 2, .mask = 0x80 },
+	{ .pin = 34, .latch = 6, .oe = 2, .mask = 0x10 },
+	{ .pin = 35, .latch = 6, .oe = 2, .mask = 0x20 },
+	{ .pin = 36, .latch = 7, .oe = 2, .mask = 0x20 },
+	{ .pin = 37, .latch = 7, .oe = 2, .mask = 0x10 },
+	{ .pin = 38, .latch = 7, .oe = 2, .mask = 0x02 },
+	{ .pin = 39, .latch = 7, .oe = 2, .mask = 0x80 },
+	{ .pin = 40, .latch = 7, .oe = 2, .mask = 0x01 }
+};
+
 
 void	minipro_chip_clean(minipro_p mp);
 
@@ -290,13 +395,6 @@ msg_recv(minipro_p mp, uint8_t *buf, size_t buf_size,
 }
 
 static void
-msg_init(minipro_p mp, uint8_t cmd, size_t msg_size) {
-
-	memset(mp->msg, 0x00, msg_size);
-	mp->msg[0] = cmd;
-}
-
-static void
 msg_chip_hdr_gen(chip_p chip, uint8_t icsp, uint8_t *buf,
     size_t buf_size) {
 
@@ -331,7 +429,9 @@ static int
 msg_send_chip_hdr(minipro_p mp, uint8_t cmd, size_t msg_size,
     size_t *transferred) {
 
-	if (NULL == mp || NULL == mp->chip)
+	if (NULL == mp ||
+	    (NULL == mp->chip &&
+	     NULL == memchr(mp_cmd_wo_chip, cmd, sizeof(mp_cmd_wo_chip))))
 		return (EINVAL);
 	msg_chip_hdr_set(mp, cmd, msg_size);
 	return (msg_send(mp, mp->msg, msg_size, transferred));
@@ -400,8 +500,7 @@ minipro_get_version_info(minipro_p mp, minipro_ver_p ver) {
 	if (NULL == mp || NULL == ver)
 		return (EINVAL);
 	memset(ver, 0x00, sizeof(minipro_ver_t));
-	msg_init(mp, MP_CMD_GET_VERSION, 5);
-	MP_RET_ON_ERR(msg_send(mp, mp->msg, 5, NULL));
+	MP_RET_ON_ERR(msg_send_chip_hdr(mp, MP_CMD_GET_VERSION, 5, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
 	if ((sizeof(minipro_ver_t) - 1) > rcvd) { /* In boot mode returned 39 bytes. */
 		MP_LOG_ERR_FMT(EMSGSIZE,
@@ -489,6 +588,153 @@ minipro_print_info(minipro_p mp) {
 }
 
 
+static int
+minipro_hardware_check_pins(minipro_p mp, mp_zif_pins_p pins,
+    size_t pins_count, int is_gnd, size_t *errors_count) {
+	int error = 0, pin_ok;
+	size_t i, rcvd;
+
+	if (NULL == mp || NULL == pins || NULL == errors_count)
+		return (EINVAL);
+
+	/* Reset pin drivers state. */
+	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+	    MP_CMD_RST_PIN_DRIVERS, 10, NULL));
+
+	/* Testing pins drivers. */
+	for (i = 0; i < pins_count; i ++) {
+		msg_chip_hdr_set(mp, MP_CMD_SET_LATCH, 32);
+		if (0 == is_gnd) {
+			mp->msg[7] = 1; /* This is number of latches we want to set (1-8). */
+		} else {
+			mp->msg[7] = ((pins[i].latch == 9) ?
+			    2 : 1); /* Special handle for pin GND20. */
+		}
+		mp->msg[8] = pins[i].oe; /* This is output enable we want to select(/OE) (1=OE_VPP, 2=OE_VCC+GND, 3=BOTH). */
+		mp->msg[9] = pins[i].latch; /* This is latch number we want to set (0-7; see the schematic diagram). */
+		mp->msg[10] = pins[i].mask; /* This is latch value we want to write (see the schematic diagram). */
+		MP_RET_ON_ERR_CLEANUP(msg_send(mp, mp->msg, 32, NULL));
+		/* Wait. */
+		usleep(MP_SET_LATCH_DELAY);
+		/* Read pins status. */
+		MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+		    MP_CMD_READ_ZIF_PINS, 18, NULL));
+		MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg,
+		    sizeof(mp->msg), &rcvd));
+		if (2 > rcvd ||
+		    0 != mp->msg[1]) {
+			error = -1;
+			MP_LOG_ERR_FMT(error,
+			    "Overcurrent protection detected while "
+			    "testing pin %02"PRIu8,
+			    pins[i].pin);
+			goto err_out;
+		}
+		if ((6 + pins[i].pin) >= rcvd) {
+			error = EBADMSG;
+			MP_LOG_ERR_FMT(error,
+			    "Not enough data readed for pin %02"PRIu8" "
+			    "readed: %zu, expected: %zu",
+			    pins[i].pin,
+			    rcvd, (size_t)(6 + pins[i].pin));
+			goto err_out;
+		}
+		pin_ok = ((0 == is_gnd) ?
+		    (0 == mp->msg[(6 + pins[i].pin)]) :
+		    (0 != mp->msg[(6 + pins[i].pin)]));
+		if (0 != pin_ok) {
+			(*errors_count) ++;
+		}
+		MP_LOG_TEXT_FMT("	pin %02"PRIu8" is %s",
+		    pins[i].pin,
+		    ((0 != pin_ok) ? "Bad" : "OK"));
+	}
+
+err_out:
+	msg_send_chip_hdr(mp, MP_CMD_RST_PIN_DRIVERS, 10, NULL);
+	minipro_end_transaction(mp); /* Call after msg processed. */
+	return (error);
+}
+int
+minipro_hardware_check(minipro_p mp, size_t *errors_count) {
+	int error;
+	size_t rcvd;
+
+	if (NULL == mp || NULL == errors_count)
+		return (EINVAL);
+
+	(*errors_count) = 0;
+
+	/* Reset pin drivers state. */
+	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+	    MP_CMD_RST_PIN_DRIVERS, 10, NULL));
+
+	MP_LOG_TEXT("Testing 16 VPP pin drivers...");
+	MP_RET_ON_ERR(minipro_hardware_check_pins(mp,
+	    vpp_pins, SIZEOF(vpp_pins), 0, errors_count));
+
+	MP_LOG_TEXT("Testing 24 VCC pin drivers...");
+	MP_RET_ON_ERR(minipro_hardware_check_pins(mp,
+	    vcc_pins, SIZEOF(vcc_pins), 0, errors_count));
+
+	MP_LOG_TEXT("Testing 25 GND pin drivers...");
+	MP_RET_ON_ERR(minipro_hardware_check_pins(mp,
+	    gnd_pins, SIZEOF(gnd_pins), 1, errors_count));
+
+	/* Testing VPP overcurrent protection. */
+	msg_chip_hdr_set(mp, MP_CMD_SET_LATCH, 32);
+	mp->msg[7] = 2; /* We will set two latches. */
+	mp->msg[8] = MP_OE_ALL; /* Both OE_VPP and OE_GND active. */
+	mp->msg[9] = vpp_pins[VPP1].latch;
+	mp->msg[10] = vpp_pins[VPP1].mask; /* Put the VPP voltage to the ZIF pin1. */
+	mp->msg[11] = gnd_pins[GND1].latch;
+	mp->msg[12] = gnd_pins[GND1].mask; /* Now put the same pin ZIF 1 to the GND. */
+	MP_RET_ON_ERR_CLEANUP(msg_send(mp, mp->msg, 32, NULL));
+	/* Wait. */
+	usleep(MP_SET_LATCH_DELAY);
+	/* Read OVC status. */
+	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+	    MP_CMD_READ_ZIF_PINS, 18, NULL));
+	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg,
+	    sizeof(mp->msg), &rcvd));
+	if (2 > rcvd ||
+	    0 == mp->msg[1]) {
+		MP_LOG_TEXT("VPP overcurrent protection failed!");
+		(*errors_count) ++;
+	} else {
+		MP_LOG_TEXT("VPP overcurrent protection is OK.");		
+	}
+
+	/* Testing VCC overcurrent protection. */
+	msg_chip_hdr_set(mp, MP_CMD_SET_LATCH, 32);
+	mp->msg[7] = 2; /* We will set two latches. */
+	mp->msg[8] = MP_OE_VCC_GND; /* OE GND is active. */
+	mp->msg[9] = vcc_pins[VCC40].latch;
+	mp->msg[10] = vcc_pins[VCC40].mask; /* Put the VCC voltage to the ZIF pin 40. */
+	mp->msg[11] = gnd_pins[GND40].latch;
+	mp->msg[12] = gnd_pins[GND40].mask; /* Now put the same pin ZIF 40 to the GND. */
+	MP_RET_ON_ERR_CLEANUP(msg_send(mp, mp->msg, 32, NULL));
+	/* Wait. */
+	usleep(MP_SET_LATCH_DELAY);
+	/* Read OVC status. */
+	MP_RET_ON_ERR(msg_send_chip_hdr(mp,
+	    MP_CMD_READ_ZIF_PINS, 18, NULL));
+	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg,
+	    sizeof(mp->msg), &rcvd));
+	if (2 > rcvd ||
+	    0 == mp->msg[1]) {
+		MP_LOG_TEXT("VCC overcurrent protection failed!");
+		(*errors_count) ++;
+	} else {
+		MP_LOG_TEXT("VCC overcurrent protection is OK.");		
+	}
+
+err_out:
+	msg_send_chip_hdr(mp, MP_CMD_RST_PIN_DRIVERS, 10, NULL);
+	minipro_end_transaction(mp); /* Call after msg processed. */
+	return (error);
+}
+
 int
 minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	int error;
@@ -533,7 +779,7 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	/* Generate msg header with chip constans. */
 	msg_chip_hdr_gen(chip, icsp, mp->msg_hdr, sizeof(mp->msg_hdr));
 
-	if (0x1002078 != chip->opts4)
+	if (CHIP_OPT4_TSOP48 != chip->opts4)
 		return (0);
 	/* Unlocking the TSOP48 adapter (if applicable). */
 	error = minipro_unlock_tsop48(mp, &tsop48);
@@ -604,7 +850,7 @@ minipro_begin_transaction(minipro_p mp) {
 int
 minipro_end_transaction(minipro_p mp) {
 
-	return (msg_send_chip_hdr(mp, MP_CMD_WRITE_INFO, 4, NULL));
+	return (msg_send_chip_hdr(mp, MP_CMD_END_TRANSACTION, 4, NULL));
 }
 
 /* Model-specific ID, e.g. AVR Device ID (not longer than 4 bytes) */

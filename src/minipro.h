@@ -27,31 +27,28 @@ typedef struct minipro_version_info_s {
 	uint8_t		hardware_version;
 	/* Since fw 6.71 (0x0252) there is 4 bytes pad here. */
 } __attribute__((__packed__)) minipro_ver_t, *minipro_ver_p;
-#define MP_DEV_VER_TL866_UNKNOWN	0
-#define MP_DEV_VER_TL866A		1
-#define MP_DEV_VER_TL866CS		2
+#define		MP_DEV_VER_TL866_UNKNOWN	0
+#define		MP_DEV_VER_TL866A		1
+#define		MP_DEV_VER_TL866CS		2
 static const char *minipro_dev_ver_str[] = {
 	"TL866 unknown",
 	"TL866A",
 	"TL866CS",
 	NULL
 };
-
-#define MP_DEV_VER_STATUS_UNKNOWN	0 /* Only for address in this array. */
-#define MP_DEV_VER_STATUS_NORMAL	1
-#define MP_DEV_VER_STATUS_BOOTLOADER	2
+#define		MP_DEV_VER_STATUS_UNKNOWN	0 /* Only for address in this array. */
+#define		MP_DEV_VER_STATUS_NORMAL	1
+#define		MP_DEV_VER_STATUS_BOOTLOADER	2
 static const char *minipro_dev_status_str[] = {
 	"unknown",
 	"normal",
 	"boot mode",
 	NULL
 };
-
-
 #define MP_CMD_READ_FLASH	0x01
 #define MP_CMD_WRITE_BOOTLOADER	0x02
 #define MP_CMD_WRITE_CONFIG	0x03
-#define MP_CMD_WRITE_INFO	0x04
+#define MP_CMD_END_TRANSACTION	0x04
 #define MP_CMD_GET_CHIP_ID	0x05 /* GET_INFO */
 #define 	MP_CHIP_ID_TYPE1	0x01 /* 1-3 bytes ID. */
 #define 	MP_CHIP_ID_TYPE2	0x02 /* 4 bytes ID. */
@@ -76,6 +73,13 @@ static const char *minipro_dev_status_str[] = {
 #define MP_CMD_SET_SHIFTREG	0x85
 #define MP_CMD_WRITE_COMMAND	0xaa
 #define MP_CMD_ERASE_COMMAND	0xcc
+#define MP_CMD_RST_PIN_DRIVERS	0xd0 /* Reset pin drivers state. */
+#define MP_CMD_SET_LATCH	0xd1
+#define		MP_SET_LATCH_DELAY	8000
+#define		MP_OE_VPP		0x01
+#define		MP_OE_VCC_GND		0x02
+#define		MP_OE_ALL		0x03
+#define MP_CMD_READ_ZIF_PINS	0xd2
 #define MP_CMD_UNLOCK_TSOP48	0xfd
 #define		MP_TSOP48_TYPE_V3	0x00
 #define		MP_TSOP48_TYPE_NONE	0x01
@@ -92,6 +96,14 @@ typedef struct minipro_status_s {
 } minipro_status_t, *minipro_status_p;
 #define MP_CMD_RESET_COMMAND	0xff
 
+/* Command that allowed to send without chip set. */
+static const uint8_t mp_cmd_wo_chip[] = {
+	MP_CMD_GET_VERSION,
+	MP_CMD_END_TRANSACTION,
+	MP_CMD_RST_PIN_DRIVERS,
+	MP_CMD_SET_LATCH,
+	MP_CMD_READ_ZIF_PINS
+};
 
 /* ICSP flags. */
 #define MP_ICSP_FLAG_ENABLE	0x80
@@ -113,6 +125,7 @@ void	minipro_close(minipro_p mp);
 int	minipro_get_version_info(minipro_p mp, minipro_ver_p ver);
 int	minipro_is_version_info_ok(minipro_p mp);
 void	minipro_print_info(minipro_p mp);
+int	minipro_hardware_check(minipro_p mp, size_t *errors_count);
 
 int	minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp);
 chip_p	minipro_chip_get(minipro_p mp);

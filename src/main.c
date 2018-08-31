@@ -66,6 +66,7 @@ static struct option lopts[] = {
 	{ "read",	required_argument,	NULL,	'r'	},
 	{ "verify",	required_argument,	NULL,	0	},
 	{ "write",	required_argument,	NULL,	'w'	},
+	{ "hwtest",	no_argument,		NULL,	't'	},
 	{ "no-erase",	no_argument,		NULL,	'e'	},
 	{ "no-pre-unprotect",	no_argument,	NULL,	'u'	},
 	{ "no-post-protect",	no_argument,	NULL,	'P'	},
@@ -93,6 +94,7 @@ static const char *lopts_descr[] = {
 	"<file_name>		Read memory",
 	"<file_name>		Verify memory",
 	"<file_name>		Write memory",
+	"			hardware self test",
 	"			Do NOT erase chip",
 	"		Do NOT disable write-protect before write",
 	"		Do NOT enable write-protect after write",
@@ -164,35 +166,36 @@ restart_opts:
 		case 0: /* read */
 		case 1: /* verify */
 		case 2: /* write */
+		case 3: /* hwtest */
 			if (-1 != cmd_opts->action) {
 				fprintf(stderr,
-				    "write / read / verify - can not be "
+				    "write / read / verify / hwtest - can not be "
 				    "combined, select one of them.\n");
 				return (EINVAL);
 			}
 			cmd_opts->action = opt_idx;
 			cmd_opts->file_name = optarg;
 			break;
-		case 3: /* no-erase */
+		case 4: /* no-erase */
 			cmd_opts->write_flags |= MP_PAGE_WR_F_NO_ERASE;
 			break;
-		case 4: /* no-pre-unprotect */
+		case 5: /* no-pre-unprotect */
 			cmd_opts->write_flags |= MP_PAGE_WR_F_PRE_NO_UNPROTECT;
 			break;
-		case 5: /* no-post-protect */
+		case 6: /* no-post-protect */
 			cmd_opts->write_flags |= MP_PAGE_WR_F_POST_NO_PROTECT;
 			break;
-		case 6: /* no-post-verify */
+		case 7: /* no-post-verify */
 			cmd_opts->post_wr_verify = 0;
 			break;
-		case 7: /* file-offset */
+		case 8: /* file-offset */
 			cmd_opts->file_offset = (off_t)strh2u64(optarg,
 			    sstrlen(optarg));
 			break;
-		case 8: /* chip */
+		case 9: /* chip */
 			cmd_opts->chip_name = optarg;
 			break;
-		case 9: /* chip-id */
+		case 10: /* chip-id */
 			cmd_opts->chip_id = strh2u32(optarg,
 			    sstrlen(optarg));
 			cmd_opts->chip_id_size = (uint8_t)snprintf(tmbuf,
@@ -200,15 +203,15 @@ restart_opts:
 			cmd_opts->chip_id_size =
 			    ((cmd_opts->chip_id_size + 1) & ~0x01);
 			break;
-		case 10: /* addr */
+		case 11: /* addr */
 			cmd_opts->address = strh2u32(optarg,
 			    sstrlen(optarg));
 			break;
-		case 11: /* size */
+		case 12: /* size */
 			cmd_opts->size = strh2usize(optarg,
 			    sstrlen(optarg));
 			break;
-		case 12: /* page */
+		case 13: /* page */
 			for (i = MP_CHIP_PAGE_CODE;
 			    MP_CHIP_PAGE__COUNT__ > i;
 			    i ++) {
@@ -224,32 +227,32 @@ restart_opts:
 				return (EINVAL);
 			}
 			break;
-		case 13: /* icsp */
+		case 14: /* icsp */
 			cmd_opts->icsp = MP_ICSP_FLAG_ENABLE;
 			break;
-		case 14: /* icsp-vcc */
+		case 15: /* icsp-vcc */
 			cmd_opts->icsp = (MP_ICSP_FLAG_ENABLE | MP_ICSP_FLAG_VCC);
 			break;
-		case 15: /* db-file */
+		case 16: /* db-file */
 			cmd_opts->db_file_name = optarg;
 			break;
-		case 16: /* db-dump */
+		case 17: /* db-dump */
 			chip_db_dump_flt(optarg);
 			return (-1);
-		case 17: /* chip-id-check-no-fail */
+		case 18: /* chip-id-check-no-fail */
 			cmd_opts->chip_id_check_no_fail = 1;
 			break;
-		case 18: /* chip-id-check-disable */
+		case 19: /* chip-id-check-disable */
 			cmd_opts->chip_id_check_disable = 1;
 			break;
-		case 19: /* no-size-error */
+		case 20: /* no-size-error */
 			cmd_opts->size_error = 0;
 			break;
-		case 20: /* no-size-error-warn */
+		case 21: /* no-size-error-warn */
 			cmd_opts->size_error = 0;
 			cmd_opts->size_error_no_warn = 1;
 			break;
-		case 21: /* quiet */
+		case 22: /* quiet */
 			cmd_opts->quiet = 1;
 			break;
 		default:
@@ -316,42 +319,47 @@ main(int argc, char **argv) {
 		return (error);
 	}
 
-	/* Load chips database from file. */
-	printf("Chips DB loading...");
-	if (NULL == cmd_opts.db_file_name) {
-		cmd_opts.db_file_name = DB_FILE_DEF;
-	}
-	error = chip_db_load(cmd_opts.db_file_name, 0);
-	if (0 != error) {
-		LOG_ERR_FMT(error, "Fail on chips DB load: %s",
-		    cmd_opts.db_file_name);
-		return (error);
-	}
-	printf("done.\n");
+	if (NULL != cmd_opts.chip_name ||
+	    0 != cmd_opts.chip_id_size) {
+		/* Load chips database from file. */
+		printf("Chips DB loading...");
+		if (NULL == cmd_opts.db_file_name) {
+			cmd_opts.db_file_name = DB_FILE_DEF;
+		}
+		error = chip_db_load(cmd_opts.db_file_name, 0);
+		if (0 != error) {
+			LOG_ERR_FMT(error, "Fail on chips DB load: %s",
+			    cmd_opts.db_file_name);
+			return (error);
+		}
+		printf("done.\n");
 
-	/* Find chip. */
-	if (NULL != cmd_opts.chip_name) { /* By name. */
-		chip = chip_db_get_by_name(cmd_opts.chip_name);
-		if (NULL == chip) {
-			fprintf(stderr,
-			    "Chip \"%s\" not found, try one of listed "
-			    "below or type: %s --db-dump | grep %s\n",
-			    cmd_opts.chip_name, basename(argv[0]),
-			    cmd_opts.chip_name);
-			chip_db_dump_flt(cmd_opts.chip_name);
-			return (-1);
+		/* Find chip. */
+		if (NULL != cmd_opts.chip_name) { /* By name. */
+			chip = chip_db_get_by_name(cmd_opts.chip_name);
+			if (NULL == chip) {
+				fprintf(stderr,
+				    "Chip \"%s\" not found, "
+				    "try one of listed "
+				    "below or type: "
+				    "%s --db-dump | grep %s\n",
+				    cmd_opts.chip_name, basename(argv[0]),
+				    cmd_opts.chip_name);
+				chip_db_dump_flt(cmd_opts.chip_name);
+				return (-1);
+			}
+		} else if (0 != cmd_opts.chip_id_size) { /* By ID. */
+			chip = chip_db_get_by_id(cmd_opts.chip_id,
+			    cmd_opts.chip_id_size);
+			if (NULL == chip) {
+				fprintf(stderr, "Chip not found.\n");
+				return (-1);
+			}
 		}
-	} else if (0 != cmd_opts.chip_id_size) { /* By ID. */
-		chip = chip_db_get_by_id(cmd_opts.chip_id,
-		    cmd_opts.chip_id_size);
-		if (NULL == chip) {
-			fprintf(stderr, "Chip not found.\n");
-			return (-1);
+		/* Display chip info. */
+		if (0 == cmd_opts.quiet) {
+			chip_db_print_info(chip);
 		}
-	}
-	/* Display chip info. */
-	if (0 == cmd_opts.quiet) {
-		chip_db_print_info(chip);
 	}
 
 	/* Open MiniPro. */
@@ -366,6 +374,15 @@ main(int argc, char **argv) {
 	}
 	if (0 != error)
 		goto err_out;
+
+	if (3 == cmd_opts.action) { /* hw test. */
+		err_offset = 0;
+		error = minipro_hardware_check(mp, &err_offset);
+		printf("HW test done, error = %i, "
+		    "HW errors count = %zu.\n",
+		    error, err_offset);
+		goto err_out;
+	}
 
 	/* Check some command line options before continue. */
 	if (NULL == chip) { /* Is chip specified? */

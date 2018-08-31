@@ -36,12 +36,17 @@ typedef struct chip_s {
 	fuse_decl_p	fuses;		/* Configuration bytes that's presenting in some architectures. */
 } __attribute__((__packed__)) chip_t, *chip_p;
 
+#define CHIP_NAME_MAX		64	/* Max chip name len. */
+
+#define CHIP_OPT4_TSOP48	0x01002078
+
+
 typedef struct chip_id_map_s {
 	uint8_t		shift;
 	uint32_t	chip_id;
 } chip_id_map_t, *chip_id_map_p;
 
-#define CHIP_NAME_MAX		64	/* Max chip name len. */
+
 
 chip_id_map_p chip_id_map(uint32_t index);
 
