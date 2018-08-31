@@ -123,7 +123,7 @@ int	minipro_get_chip_id(minipro_p mp, uint32_t *chip_id_type,
 	    uint32_t *chip_id, uint8_t *chip_id_size,
 	    uint32_t *chip_id_rev);
 
-int	minipro_prepare_writing(minipro_p mp);
+int	minipro_erase(minipro_p mp);
 
 int	minipro_protect_set(minipro_p mp, int val);
 

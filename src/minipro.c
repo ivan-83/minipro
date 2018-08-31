@@ -533,31 +533,37 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	/* Generate msg header with chip constans. */
 	msg_chip_hdr_gen(chip, icsp, mp->msg_hdr, sizeof(mp->msg_hdr));
 
+	if (0x1002078 != chip->opts4)
+		return (0);
 	/* Unlocking the TSOP48 adapter (if applicable). */
-	if (chip->opts4 == 0x1002078) {
-		error = minipro_unlock_tsop48(mp, &tsop48);
-		if (0 != error) {
-			minipro_chip_clean(mp);
-			MP_LOG_ERR(error, "Cant unlock TSOP48.");
-			return (error);
-		}
-		switch (tsop48) {
-		case MP_TSOP48_TYPE_V3:
-			MP_LOG_TEXT("Found TSOP adapter V3.");
-			break;
-		case MP_TSOP48_TYPE_NONE:
-			minipro_chip_clean(mp);
-			MP_LOG_ERR(EINVAL, "TSOP adapter not found!");
-			return (EINVAL);
-		case MP_TSOP48_TYPE_V2:
-			MP_LOG_TEXT("Found TSOP adapter V0.");
-			break;
-		case MP_TSOP48_TYPE_FAKE1:
-		case MP_TSOP48_TYPE_FAKE2:
-			MP_LOG_TEXT("Fake TSOP adapter found!");
-			break;
-		}
+	error = minipro_unlock_tsop48(mp, &tsop48);
+	if (0 != error) {
+		minipro_chip_clean(mp);
+		MP_LOG_ERR(error, "Cant unlock TSOP48.");
+		return (error);
 	}
+	switch (tsop48) {
+	case MP_TSOP48_TYPE_V3:
+		MP_LOG_TEXT("Found TSOP adapter V3.");
+		break;
+	case MP_TSOP48_TYPE_NONE:
+		minipro_chip_clean(mp);
+		MP_LOG_ERR(EINVAL, "TSOP adapter not found!");
+		return (EINVAL);
+	case MP_TSOP48_TYPE_V2:
+		MP_LOG_TEXT("Found TSOP adapter V0.");
+		break;
+	case MP_TSOP48_TYPE_FAKE1:
+	case MP_TSOP48_TYPE_FAKE2:
+		MP_LOG_TEXT("Fake TSOP adapter found!");
+		break;
+	}
+
+	/* Overcurrency status check. */
+	MP_RET_ON_ERR(minipro_begin_transaction(mp));
+	error = minipro_overcurrency_chk(mp);
+	MP_RET_ON_ERR(minipro_end_transaction(mp));
+	MP_RET_ON_ERR(error);
 
 	return (0);
 }
@@ -570,6 +576,8 @@ minipro_chip_clean(minipro_p mp) {
 
 	/* Turn off the power on zif socket. */
 	minipro_end_transaction(mp);
+	memset(mp->msg_hdr, 0x00, sizeof(mp->msg_hdr));
+	memset(mp->msg, 0x00, sizeof(mp->msg));
 	/* Free res. */
 	free(mp->read_block_buf);
 	free(mp->write_block_buf);
@@ -658,7 +666,7 @@ err_out:
 }
 
 int
-minipro_prepare_writing(minipro_p mp) {
+minipro_erase(minipro_p mp) {
 	int error;
 	size_t rcvd;
 
@@ -670,6 +678,8 @@ minipro_prepare_writing(minipro_p mp) {
 	MP_RET_ON_ERR_CLEANUP(msg_send(mp, mp->msg, 15, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg),
 	    &rcvd)); /* rcvd == 10 */
+	/* Overcurrency status check. */
+	MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 
 err_out:
 	minipro_end_transaction(mp); /* Let MP_CMD_ERASE to take an effect. */
@@ -686,6 +696,8 @@ minipro_protect_set(minipro_p mp, int val) {
 	MP_RET_ON_ERR_CLEANUP(msg_send_chip_hdr(mp,
 	    ((0 != val) ? MP_CMD_PROTECT_ON : MP_CMD_PROTECT_OFF), 10,
 	    NULL));
+	/* Overcurrency status check. */
+	MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 
 err_out:
 	minipro_end_transaction(mp);
@@ -751,7 +763,7 @@ int
 minipro_overcurrency_chk(minipro_p mp) {
 	minipro_status_t status;
 
-	if (NULL == mp)
+	if (NULL == mp || NULL == mp->chip)
 		return (EINVAL);
 
 	MP_RET_ON_ERR(minipro_get_status(mp, &status));
@@ -782,7 +794,6 @@ minipro_read_block(minipro_p mp, uint8_t cmd, uint32_t addr,
 	MP_RET_ON_ERR(msg_recv(mp, buf, buf_size, &rcvd));
 	if (rcvd != buf_size)
 		return (EMSGSIZE);
-
 	/* Overcurrency status check. */
 	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
 
@@ -841,7 +852,6 @@ minipro_read_fuses(minipro_p mp, uint8_t cmd,
 	if ((7 + buf_size) > rcvd)
 		return (EMSGSIZE);
 	memcpy(buf, &mp->msg[7], buf_size);
-
 	/* Overcurrency status check. */
 	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
 
@@ -886,7 +896,6 @@ minipro_write_fuses(minipro_p mp, uint8_t cmd,
 		return (EMSGSIZE);
 	if (memcmp(buf, &mp->msg[7], buf_size))
 		return (-1);
-
 	/* Overcurrency status check. */
 	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
 
@@ -907,9 +916,8 @@ minipro_read_buf(minipro_p mp, uint8_t cmd,
 		return (EINVAL);
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
-
 	/* Overcurrency status check. */
-	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
+	MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 
 	blk_size = mp->chip->read_block_size;
 	offset = (addr % blk_size); /* Offset from first block start. */
@@ -968,9 +976,8 @@ minipro_verify_buf(minipro_p mp, uint8_t cmd,
 		return (EINVAL);
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
-
 	/* Overcurrency status check. */
-	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
+	MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 
 	blk_size = mp->chip->read_block_size;
 	offset = (addr % blk_size); /* Offset from first block start. */
@@ -1086,7 +1093,7 @@ minipro_write_buf(minipro_p mp, uint8_t cmd,
 	} else {
 		MP_RET_ON_ERR(minipro_begin_transaction(mp));
 		/* Overcurrency status check. */
-		MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
+		MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 	}
 
 	/* Write alligned blocks. */
@@ -1146,7 +1153,7 @@ minipro_fuses_read(minipro_p mp,
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
 	/* Overcurrency status check. */
-	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
+	MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 
 	MP_PROGRESS_UPDATE(cb, mp, 0, count, udata);
 
@@ -1213,7 +1220,7 @@ minipro_fuses_verify(minipro_p mp, const uint8_t *buf, size_t buf_size,
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
 	/* Overcurrency status check. */
-	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
+	MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 
 	MP_PROGRESS_UPDATE(cb, mp, 0, count, udata);
 
@@ -1289,7 +1296,7 @@ minipro_fuses_write(minipro_p mp, const uint8_t *buf, size_t buf_size,
 
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
 	/* Overcurrency status check. */
-	MP_RET_ON_ERR(minipro_overcurrency_chk(mp));
+	MP_RET_ON_ERR_CLEANUP(minipro_overcurrency_chk(mp));
 
 	MP_PROGRESS_UPDATE(cb, mp, 0, count, udata);
 
@@ -1462,16 +1469,16 @@ minipro_page_write(minipro_p mp, uint32_t flags,
 		return (EINVAL);
 	}
 
-	/* Erase before writing. */
-	if (0 == (MP_PAGE_WR_F_NO_ERASE & flags)) {
-		MP_RET_ON_ERR(minipro_prepare_writing(mp));
-	}
-
 	/* Overcurrency status check. */
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
 	error = minipro_overcurrency_chk(mp);
 	MP_RET_ON_ERR(minipro_end_transaction(mp));
 	MP_RET_ON_ERR(error);
+
+	/* Erase before writing. */
+	if (0 == (MP_PAGE_WR_F_NO_ERASE & flags)) {
+		MP_RET_ON_ERR(minipro_erase(mp));
+	}
 
 	/* Turn off protection before writing. */
 	if (0 != (0xc000 & mp->chip->opts4) &&
