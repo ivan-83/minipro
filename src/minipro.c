@@ -1090,7 +1090,7 @@ minipro_read_fuses(minipro_p mp, uint8_t cmd,
 	msg_chip_hdr_set(mp, cmd, 18);
 	/* Note that PICs with 1 config word will show buf_size == 2. (for pic2_fuses) */
 	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ?
-	    0x02 : 0x01);
+	    0x02 : (uint8_t)buf_size);
 	mp->msg[5] = 0x10;
 	MP_RET_ON_ERR(msg_send(mp, mp->msg, 18, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == (7 + buf_size) */
@@ -1113,16 +1113,16 @@ minipro_write_fuses(minipro_p mp, uint8_t cmd,
 		return (EINVAL);
 	/* Perform actual writing. */
 	switch ((0xf0 & cmd)) {
-	case 0x10:
+	case MP_CMD_READ_USER:
 		msg_chip_hdr_set(mp, (cmd + 1), 64);
-		mp->msg[2] = ((4 == buf_size) ? 0x02 : 0x01); /* 2 fuse PICs have len = 8 */
+		mp->msg[2] = ((4 == buf_size) ? 0x02 : (uint8_t)buf_size); /* 2 fuse PICs have len = 8 */
 		mp->msg[4] = 0xc8;
 		mp->msg[5] = 0x0f;
 		mp->msg[6] = 0x00; /* Do not optimize this. */
 		memcpy(&mp->msg[7], buf, buf_size);
 		MP_RET_ON_ERR(msg_send(mp, mp->msg, 64, NULL));
 		break;
-	case 0x40:
+	case MP_CMD_WRITE_LOCK:
 		msg_chip_hdr_set(mp, (cmd - 1), 10);
 		memcpy(&mp->msg[7], buf, buf_size);
 		MP_RET_ON_ERR(msg_send(mp, mp->msg, 10, NULL));
@@ -1133,7 +1133,7 @@ minipro_write_fuses(minipro_p mp, uint8_t cmd,
 	msg_chip_hdr_set(mp, cmd, 18);
 	/* Note that PICs with 1 config word will show buf_size == 2. (for pic2_fuses) */
 	mp->msg[2] = ((MP_CMD_READ_CFG == cmd && 4 == buf_size) ?
-	    0x02 : 0x01);
+	    0x02 : (uint8_t)buf_size);
 	memcpy(&mp->msg[7], buf, buf_size);
 	MP_RET_ON_ERR(msg_send(mp, mp->msg, 18, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
@@ -1392,6 +1392,11 @@ minipro_fuses_read(minipro_p mp,
 		return (EINVAL);
 
 	fuses = mp->chip->fuses;
+	if (0 != fuses[0].offset) {
+		MP_LOG_ERR(EINVAL,
+		    "Can't read the lock byte of this device!");
+		return (EINVAL);
+	}
 	count = fuses[0].size;
 	cmd = fuses[1].cmd;
 	size = fuses[1].size;
@@ -1459,6 +1464,10 @@ minipro_fuses_verify(minipro_p mp, const uint8_t *buf, size_t buf_size,
 		return (EINVAL);
 
 	fuses = mp->chip->fuses;
+	if (0 != fuses[0].offset) {
+		MP_LOG_TEXT("Can't read the lock byte of this device!");
+		return (0);
+	}
 	count = fuses[0].size;
 	cmd = fuses[1].cmd;
 	size = fuses[1].size;

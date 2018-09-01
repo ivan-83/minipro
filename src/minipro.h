@@ -55,6 +55,8 @@ static const char *minipro_dev_status_str[] = {
 #define 	MP_CHIP_ID_TYPE3	0x03 /* Microchip controllers with 5 bit revision number. */
 #define 	MP_CHIP_ID_TYPE4	0x04 /* Microchip controllers with 4-5 bit revision number. */
 #define 	MP_CHIP_ID_TYPE5	0x05 /* 3 bytes ID, this ID type is returning from 25 SPI series. */
+#define MP_CMD_READ_USER	0x10
+#define MP_CMD_WRITE_USER	0x11
 #define MP_CMD_READ_CFG		0x12
 #define MP_CMD_WRITE_CFG	0x13
 #define MP_CMD_WRITE_CODE	0x20 
@@ -62,6 +64,8 @@ static const char *minipro_dev_status_str[] = {
 #define MP_CMD_ERASE		0x22
 #define MP_CMD_READ_DATA	0x30 
 #define MP_CMD_WRITE_DATA	0x31 
+#define MP_CMD_WRITE_LOCK	0x40
+#define MP_CMD_READ_LOCK	0x41
 #define MP_CMD_PROTECT_OFF	0x44
 #define MP_CMD_PROTECT_ON	0x45
 //#define MP_CMD_DEBUG_PACKET	0x7f

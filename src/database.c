@@ -17,17 +17,22 @@
 #define DB_CHIPS_PREALLOC	512
 
 
+static fuse_decl_t atmel_lock[] = {
+	{ .name = NULL,		.cmd = 0xff,		.size = 2, .offset = 1 /* Write only. */ }, /* Items count, include this. */
+	{ .name = "lock_byte",	.cmd = MP_CMD_READ_LOCK,.size = 1, .offset = 0 },
+};
+
 static fuse_decl_t avr_fuses[] = {
 	{ .name = NULL,		.cmd = 0xff,		.size = 3, .offset = 0 }, /* Items count, include this. */
 	{ .name = "fuses",	.cmd = MP_CMD_READ_CFG,	.size = 1, .offset = 0 },
-	{ .name = "lock_byte",	.cmd = 0x41,		.size = 1, .offset = 0 },
+	{ .name = "lock_byte",	.cmd = MP_CMD_READ_LOCK,.size = 1, .offset = 0 },
 };
 
 static fuse_decl_t avr2_fuses[] = {
 	{ .name = NULL,		.cmd = 0xff,		.size = 4, .offset = 0 }, /* Items count, include this. */
 	{ .name = "fuses_lo",	.cmd = MP_CMD_READ_CFG,	.size = 1, .offset = 0 },
 	{ .name = "fuses_hi",	.cmd = MP_CMD_READ_CFG,	.size = 1, .offset = 1 },
-	{ .name = "lock_byte",	.cmd = 0x41,		.size = 1, .offset = 0 },
+	{ .name = "lock_byte",	.cmd = MP_CMD_READ_LOCK,.size = 1, .offset = 0 },
 };
 
 static fuse_decl_t avr3_fuses[] = {
@@ -35,24 +40,24 @@ static fuse_decl_t avr3_fuses[] = {
 	{ .name = "fuses_lo",	.cmd = MP_CMD_READ_CFG,	.size = 1, .offset = 0 },
 	{ .name = "fuses_hi",	.cmd = MP_CMD_READ_CFG,	.size = 1, .offset = 1 },
 	{ .name = "fuses_ext",	.cmd = MP_CMD_READ_CFG,	.size = 1, .offset = 2 },
-	{ .name = "lock_byte",	.cmd = 0x41,		.size = 1, .offset = 0 },
+	{ .name = "lock_byte",	.cmd = MP_CMD_READ_LOCK,.size = 1, .offset = 0 },
 };
 
 static fuse_decl_t pic_fuses[] = {
 	{ .name = NULL,		.cmd = 0xff,		.size = 6, .offset = 0 }, /* Items count, include this. */
-	{ .name = "user_id0",	.cmd = 0x10,		.size = 2, .offset = 0 },
-	{ .name = "user_id1",	.cmd = 0x10,		.size = 2, .offset = 2 },
-	{ .name = "user_id2",	.cmd = 0x10,		.size = 2, .offset = 4 },
-	{ .name = "user_id3",	.cmd = 0x10,		.size = 2, .offset = 6 },
+	{ .name = "user_id0",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 0 },
+	{ .name = "user_id1",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 2 },
+	{ .name = "user_id2",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 4 },
+	{ .name = "user_id3",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 6 },
 	{ .name = "conf_word",	.cmd = MP_CMD_READ_CFG,	.size = 2, .offset = 0 },
 };
 
 static fuse_decl_t pic2_fuses[] = {
 	{ .name = NULL,		.cmd = 0xff,		.size = 7, .offset = 0 }, /* Items count, include this. */
-	{ .name = "user_id0",	.cmd = 0x10,		.size = 2, .offset = 0 },
-	{ .name = "user_id1",	.cmd = 0x10,		.size = 2, .offset = 2 },
-	{ .name = "user_id2",	.cmd = 0x10,		.size = 2, .offset = 4 },
-	{ .name = "user_id3",	.cmd = 0x10,		.size = 2, .offset = 6 },
+	{ .name = "user_id0",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 0 },
+	{ .name = "user_id1",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 2 },
+	{ .name = "user_id2",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 4 },
+	{ .name = "user_id3",	.cmd = MP_CMD_READ_USER,.size = 2, .offset = 6 },
 	{ .name = "conf_word",	.cmd = MP_CMD_READ_CFG,	.size = 2, .offset = 0 },
 	{ .name = "conf_word1",	.cmd = MP_CMD_READ_CFG,	.size = 2, .offset = 2 },
 };
@@ -285,6 +290,8 @@ chip_db_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 		} else if (0 == mem_cmpn_cstr("fuses", vn, vn_sz)) {
 			if (0 == mem_cmpn_cstr("NULL", val, val_size)) {
 				chip->fuses = NULL;
+			} else if (0 == mem_cmpn_cstr("atmel_lock", val, val_size)) {
+				chip->fuses = atmel_lock;
 			} else if (0 == mem_cmpn_cstr("avr_fuses", val, val_size)) {
 				chip->fuses = avr_fuses;
 			} else if (0 == mem_cmpn_cstr("avr2_fuses", val, val_size)) {
