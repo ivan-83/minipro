@@ -581,6 +581,7 @@ main(int argc, char **argv) {
 				    (size_t)cmd_opts.file_offset,
 				    (size_t)(file_size - cmd_opts.file_offset),
 				    tr_size);
+				tr_size = 0;
 			}
 		}
 		/* Loading file. */
