@@ -293,13 +293,14 @@ print_usage(const char *progname) {
 
 static void
 progress_cb(minipro_p mp __unused, size_t done, size_t total,
-    void *udata) {
+    const void *udata) {
 
 	if (done == total) {
 		printf("\r\e[K%sOK.\n", (const char*)udata);
 	} else {
-		printf("\r\e[K%s%zu / %zu bytes",
-		    (const char*)udata, done, total);
+		printf("\r\e[K%s%zu / %zu bytes - %zu%%",
+		    (const char*)udata, done, total,
+		    ((done * 100) / total));
 	}
 	fflush(stdout);
 }

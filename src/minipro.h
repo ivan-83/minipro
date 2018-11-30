@@ -119,7 +119,7 @@ static const uint8_t mp_cmd_wo_chip[] = {
 
 typedef struct minipro_handle_s *minipro_p;
 typedef void (*minipro_progress_cb)(minipro_p mp, size_t done,
-		size_t total, void *udata);
+		size_t total, const void *udata);
 
 
 int	minipro_open(uint16_t vendor_id, uint16_t product_id,
