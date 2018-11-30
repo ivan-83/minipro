@@ -336,7 +336,6 @@ chip_db_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 	if ((0 == chip->chip_id && 0 != chip->chip_id_size) ||
 	    0 != (CHIP_OPT4_CHIP_ID & chip->opts4)) {
 		id_map = chip_id_map(chip->opts3);
-		debug_break_if(NULL == id_map);
 		if (NULL != id_map) {
 			chip->chip_id = id_map->chip_id;
 		}
