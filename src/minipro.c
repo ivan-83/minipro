@@ -1732,7 +1732,9 @@ minipro_page_write(minipro_p mp, uint32_t flags,
 	/* Erase before writing. */
 	if (0 == (MP_PAGE_WR_F_NO_ERASE & flags) &&
 	    0 != (CHIP_OPT4_ERASE & mp->chip->opts4)) {
+		MP_PROGRESS_UPDATE(cb, mp, 0, 100, "Erasing... ");
 		MP_RET_ON_ERR(minipro_erase(mp));
+		MP_PROGRESS_UPDATE(cb, mp, 100, 100, "Erasing... ");
 	}
 
 	/* Turn off protection before writing. */
