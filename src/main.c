@@ -1,6 +1,8 @@
 
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +15,9 @@
 #include <libgen.h>
 #include <signal.h>
 #include <errno.h>
+#ifdef BSD /* BSD specific code. */
+#	include <sys/rtprio.h>
+#endif /* BSD specific code. */
 
 #include "utils/macro.h"
 #include "utils/strh2num.h"
@@ -23,6 +28,8 @@
 
 
 #define MAX_CHIP_FILE_SIZE	(1024 * 1024 * 1024) /* 1Gb */
+#define PROCESS_PRIORITY	-5
+
 
 #define LOG_ERR(__error, __descr)					\
 	if (0 != (__error))						\
@@ -361,6 +368,15 @@ main(int argc, char **argv) {
 			chip_db_print_info(chip);
 		}
 	}
+
+	/* Try to increase process priority. */
+	setpriority(PRIO_PROCESS, 0, PROCESS_PRIORITY);
+#ifdef BSD /* BSD specific code. */
+	struct rtprio rtp;
+	rtp.type = RTP_PRIO_REALTIME;
+	rtp.prio = (u_short)PROCESS_PRIORITY;
+	rtprio(RTP_SET, 0, &rtp);
+#endif
 
 	/* Open MiniPro. */
 	error = minipro_open(MP_TL866_VID, MP_TL866_PID,
