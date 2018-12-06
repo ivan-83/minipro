@@ -524,21 +524,21 @@ int
 minipro_get_version_info(minipro_p mp, minipro_ver_p ver) {
 	size_t rcvd;
 
-	if (NULL == mp || NULL == ver)
+	if (NULL == mp)
 		return (EINVAL);
 
 	//MP_RET_ON_ERR(msg_send_chip_hdr_ex(mp, MP_CMD_GET_VERSION, 5, 100, NULL));
 	msg_send_chip_hdr_ex(mp, MP_CMD_GET_VERSION, 5, 100, NULL);
 	MP_RET_ON_ERR(msg_recv_ex(mp, mp->msg, sizeof(mp->msg), 100, &rcvd));
 
+	if (MP_CMD_GET_VERSION != mp->msg[0])
+		return (EBADMSG);
 	if ((sizeof(minipro_ver_t) - 1) > rcvd) { /* In boot mode returned 39 bytes. */
 		MP_LOG_ERR_FMT(EMSGSIZE,
 		    "expected at least %zu bytes but %zu bytes received.",
 		    (sizeof(minipro_ver_t) - 1), rcvd);
 		return (EMSGSIZE);
 	}
-	if (MP_CMD_GET_VERSION != mp->msg[0])
-		return (EBADMSG);
 
 	if (NULL != ver) {
 		memcpy(ver, mp->msg, MIN(rcvd, sizeof(minipro_ver_t)));
