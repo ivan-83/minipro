@@ -335,23 +335,13 @@ memcmp_idx(const uint8_t *buf1, const uint8_t *buf2, const size_t size) {
 
 static int
 msg_transfer(minipro_p mp, uint8_t direction,
-    uint8_t *buf, size_t buf_size, size_t *transferred) {
+    uint8_t *buf, size_t buf_size, uint32_t timeout, size_t *transferred) {
 	int error, bytes_transferred = 0;
 
-	error = libusb_claim_interface(mp->usb_handle, 0);
-	if (0 != error) {
-		MP_LOG_USB_ERR(error, "libusb_claim_interface().");
-		goto err_out;
-	}
 	error = libusb_bulk_transfer(mp->usb_handle, (1 | direction),
-	    buf, (int)buf_size, &bytes_transferred, 0);
+	    buf, (int)buf_size, &bytes_transferred, timeout);
 	if (0 != error) {
 		MP_LOG_USB_ERR(error, "libusb_bulk_transfer().");
-		goto err_out;
-	}
-	error = libusb_release_interface(mp->usb_handle, 0);
-	if (0 != error) {
-		MP_LOG_USB_ERR(error, "libusb_release_interface().");
 		goto err_out;
 	}
 
@@ -364,12 +354,12 @@ err_out:
 }
 
 static int
-msg_send(minipro_p mp, uint8_t *buf, size_t buf_size,
+msg_send_ex(minipro_p mp, uint8_t *buf, size_t buf_size, uint32_t timeout,
     size_t *transferred) {
 	int error;
 	size_t bytes_transferred;
 
-	error = msg_transfer(mp, LIBUSB_ENDPOINT_OUT, buf, buf_size,
+	error = msg_transfer(mp, LIBUSB_ENDPOINT_OUT, buf, buf_size, timeout,
 	    &bytes_transferred);
 	if (NULL != transferred) {
 		(*transferred) = bytes_transferred;
@@ -387,11 +377,25 @@ msg_send(minipro_p mp, uint8_t *buf, size_t buf_size,
 }
 
 static int
+msg_send(minipro_p mp, uint8_t *buf, size_t buf_size,
+    size_t *transferred) {
+
+	return (msg_send_ex(mp, buf, buf_size, 0, transferred));
+}
+
+static int
+msg_recv_ex(minipro_p mp, uint8_t *buf, size_t buf_size, uint32_t timeout,
+    size_t *transferred) {
+
+	return (msg_transfer(mp, LIBUSB_ENDPOINT_IN, buf, buf_size, timeout,
+	    transferred));
+}
+
+static int
 msg_recv(minipro_p mp, uint8_t *buf, size_t buf_size,
     size_t *transferred) {
 
-	return (msg_transfer(mp, LIBUSB_ENDPOINT_IN, buf, buf_size,
-	    transferred));
+	return (msg_recv_ex(mp, buf, buf_size, 0, transferred));
 }
 
 static void
@@ -426,7 +430,7 @@ msg_chip_hdr_set(minipro_p mp, uint8_t cmd, size_t msg_size) {
 }
 
 static int
-msg_send_chip_hdr(minipro_p mp, uint8_t cmd, size_t msg_size,
+msg_send_chip_hdr_ex(minipro_p mp, uint8_t cmd, size_t msg_size, uint32_t timeout,
     size_t *transferred) {
 
 	if (NULL == mp ||
@@ -434,7 +438,14 @@ msg_send_chip_hdr(minipro_p mp, uint8_t cmd, size_t msg_size,
 	     NULL == memchr(mp_cmd_wo_chip, cmd, sizeof(mp_cmd_wo_chip))))
 		return (EINVAL);
 	msg_chip_hdr_set(mp, cmd, msg_size);
-	return (msg_send(mp, mp->msg, msg_size, transferred));
+	return (msg_send_ex(mp, mp->msg, msg_size, timeout, transferred));
+}
+
+static int
+msg_send_chip_hdr(minipro_p mp, uint8_t cmd, size_t msg_size,
+    size_t *transferred) {
+
+	return (msg_send_chip_hdr_ex(mp, cmd, msg_size, 0, transferred));
 }
 
 
@@ -466,8 +477,22 @@ minipro_open(uint16_t vendor_id, uint16_t product_id,
 		MP_LOG_ERR(error, "error opening device.");
 		goto err_out;
 	}
+	error = libusb_claim_interface(mp->usb_handle, 0);
+	if (0 != error) {
+		MP_LOG_USB_ERR(error, "libusb_claim_interface().");
+		goto err_out;
+	}
 
-	error = minipro_get_version_info(mp, &mp->ver);
+	/* Flush unreaded and get version. */
+	mp->verboce = 0;
+	for (size_t i = 0; i < MP_INIT_SUB_TRY_COUNT; i ++) {
+		error = msg_recv_ex(mp, mp->msg, sizeof(mp->msg), 100, NULL);
+		usleep(10000);
+		error = minipro_get_version_info(mp, &mp->ver);
+		if (0 == error)
+			break;
+	}
+	mp->verboce = verboce;
 	if (0 != error) {
 		MP_LOG_ERR(error, "minipro_get_version_info().");
 		goto err_out;
@@ -489,7 +514,9 @@ minipro_close(minipro_p mp) {
 		return;
 
 	minipro_chip_clean(mp);
+	libusb_release_interface(mp->usb_handle, 0);
 	libusb_close(mp->usb_handle);
+	libusb_exit(mp->ctx);
 	free(mp);
 }
 
@@ -499,16 +526,23 @@ minipro_get_version_info(minipro_p mp, minipro_ver_p ver) {
 
 	if (NULL == mp || NULL == ver)
 		return (EINVAL);
-	memset(ver, 0x00, sizeof(minipro_ver_t));
-	MP_RET_ON_ERR(msg_send_chip_hdr(mp, MP_CMD_GET_VERSION, 5, NULL));
-	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd));
+
+	//MP_RET_ON_ERR(msg_send_chip_hdr_ex(mp, MP_CMD_GET_VERSION, 5, 100, NULL));
+	msg_send_chip_hdr_ex(mp, MP_CMD_GET_VERSION, 5, 100, NULL);
+	MP_RET_ON_ERR(msg_recv_ex(mp, mp->msg, sizeof(mp->msg), 100, &rcvd));
+
 	if ((sizeof(minipro_ver_t) - 1) > rcvd) { /* In boot mode returned 39 bytes. */
 		MP_LOG_ERR_FMT(EMSGSIZE,
 		    "expected at least %zu bytes but %zu bytes received.",
 		    (sizeof(minipro_ver_t) - 1), rcvd);
 		return (EMSGSIZE);
 	}
-	memcpy(ver, mp->msg, MIN(rcvd, sizeof(minipro_ver_t)));
+	if (MP_CMD_GET_VERSION != mp->msg[0])
+		return (EBADMSG);
+
+	if (NULL != ver) {
+		memcpy(ver, mp->msg, MIN(rcvd, sizeof(minipro_ver_t)));
+	}
 
 	return (0);
 }

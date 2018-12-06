@@ -12,6 +12,8 @@
 
 #define MP_FW_VER_MIN		0x0255
 
+#define MP_INIT_SUB_TRY_COUNT	5
+
 
 /* Commands. */
 #define MP_CMD_GET_VERSION	0x00
