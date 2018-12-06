@@ -451,6 +451,14 @@ is_chip_id_eq(const chip_p chip, const uint32_t id,
 }
 
 chip_p
+chip_db_get_by_idx(const size_t index) {
+
+	if (NULL == chips_db || index >= chips_db_count)
+		return (NULL);
+	return (&chips_db[index]);
+}
+
+chip_p
 chip_db_get_by_id(const uint32_t chip_id, const uint8_t chip_id_size) {
 	chip_p chip;
 
@@ -532,21 +540,21 @@ chip_db_print_info(const chip_p chip) {
 
 	/* Package info */
 	printf("Package: ");
-	if (0 != (0x000000ff & chip->package_details)) {
+	if (0 != (CHIP_PKG_D_ADAPTER_MASK & chip->package_details)) {
 		printf("Adapter%03d.JPG\n",
-		    (0x000000ff & chip->package_details));
-	} else if (0 != (0xff000000 & chip->package_details)) {
+		    CHIP_PKG_D_ADAPTER(chip->package_details));
+	} else if (0 != (CHIP_PKG_D_DIP_MASK & chip->package_details)) {
 		printf("DIP%d\n",
-		    ((chip->package_details >> 24) & 0x7f));
+		    CHIP_PKG_D_DIP(chip->package_details));
 	} else {
 		printf("ISP only\n");
 	}
 
 	/* ISP connection info */
 	printf("ISP: ");
-	if (0 != (0x0000ff00 & chip->package_details)) {
+	if (0 != (CHIP_PKG_D_ISP_MASK & chip->package_details)) {
 		printf("ICP%03d.JPG\n",
-		    ((chip->package_details >> 8) & 0x000000ff));
+		    CHIP_PKG_D_ISP(chip->package_details));
 	} else {
 		printf("-\n");
 	}
