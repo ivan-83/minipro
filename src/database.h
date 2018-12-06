@@ -61,6 +61,7 @@ chip_id_map_p chip_id_map(uint32_t index);
 
 void	chip_db_free(void);
 int	chip_db_load(const char *file_name, size_t file_name_size);
+size_t	chip_db_get_count(void);
 
 int	is_chip_id_prob_eq(const chip_p chip, const uint32_t id,
 	    const uint8_t id_size);

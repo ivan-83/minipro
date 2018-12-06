@@ -340,7 +340,7 @@ main(int argc, char **argv) {
 			    cmd_opts.db_file_name);
 			return (error);
 		}
-		printf("done.\n");
+		printf("done, %zu loaded.\n", chip_db_get_count());
 
 		/* Find chip. */
 		if (NULL != cmd_opts.chip_name) { /* By name. */

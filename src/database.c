@@ -63,6 +63,7 @@ static fuse_decl_t pic2_fuses[] = {
 };
 
 static chip_p chips_db = NULL;
+static size_t chips_db_count = 0;
 
 /* Device ID table for the Microchip PIC controllers.
  * Extracted by Radioman from the last 6.82 minipro software.
@@ -403,6 +404,7 @@ chip_db_load(const char *file_name, size_t file_name_size) {
 	error = realloc_items((void**)&chips_db,
 	    sizeof(chip_t), &cdb_allocated,
 	    4, (cdb_count + 1));
+	chips_db_count = cdb_count;
 
 err_out:
 	if (0 != error) {
@@ -412,6 +414,14 @@ err_out:
 	ini_destroy(ini);
 
 	return (error);
+}
+
+size_t
+chip_db_get_count(void) {
+
+	if (NULL == chips_db)
+		return (0);
+	return (chips_db_count);
 }
 
 
