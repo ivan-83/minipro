@@ -17,7 +17,6 @@ typedef struct chip_s {
 	char		*name;
 	uint8_t		protocol_id;
 	uint8_t		variant;
-	uint32_t	addressing_mode;
 	uint32_t	read_block_size;
 	uint32_t	write_block_size;
 
