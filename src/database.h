@@ -38,7 +38,6 @@ typedef struct chip_s {
 #define CHIP_NAME_MAX		64	/* Max chip name len. */
 
 /* opts4 */
-#define CHIP_OPT4_TSOP48		0x01002078
 #define CHIP_OPT4_SIZE_UNITS_MASK	0xff000000
 #define CHIP_OPT4_SIZE_UNITS(__val)	((__val) >> 24)
 #define CHIP_OPT4_SIZE_BYTES			0x00
@@ -52,6 +51,15 @@ typedef struct chip_s {
 /* package_details */
 #define CHIP_PKG_D_ADAPTER_MASK		0x000000ff
 #define CHIP_PKG_D_ADAPTER(__val)	((__val) & CHIP_PKG_D_ADAPTER_MASK)
+#define CHIP_PKG_D_ADAPTER_TSOP48		0x01
+#define CHIP_PKG_D_ADAPTER_SOP44		0x02
+#define CHIP_PKG_D_ADAPTER_TSOP40A		0x03
+#define CHIP_PKG_D_ADAPTER_TSOP40B		0x04
+#define CHIP_PKG_D_ADAPTER_TSOP32		0x05
+#define CHIP_PKG_D_ADAPTER_SOP56		0x06
+#define CHIP_PKG_D_ADAPTER_TQFP64		0x07
+#define CHIP_PKG_D_ADAPTER_25_TO_8_18V		0x08
+#define CHIP_PKG_D_ADAPTER_25_TO_16_18V		0x09
 #define CHIP_PKG_D_ISP_MASK		0x0000ff00
 #define CHIP_PKG_D_ISP(__val)		(((__val) & CHIP_PKG_D_ISP_MASK) >> 8)
 #define CHIP_PKG_D_DIP_MASK		0xff000000 /* 7f? */

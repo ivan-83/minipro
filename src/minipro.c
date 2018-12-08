@@ -812,7 +812,9 @@ minipro_chip_set(minipro_p mp, chip_p chip, uint8_t icsp) {
 	/* Generate msg header with chip constans. */
 	msg_chip_hdr_gen(chip, icsp, mp->msg_hdr, sizeof(mp->msg_hdr));
 
-	if (CHIP_OPT4_TSOP48 != chip->opts4)
+	if (CHIP_PKG_D_ADAPTER_TSOP48 != CHIP_PKG_D_ADAPTER(chip->package_details) &&
+	    CHIP_PKG_D_ADAPTER_SOP44 != CHIP_PKG_D_ADAPTER(chip->package_details) &&
+	    CHIP_PKG_D_ADAPTER_SOP56 != CHIP_PKG_D_ADAPTER(chip->package_details))
 		return (0);
 	/* Unlocking the TSOP48 adapter (if applicable). */
 	error = minipro_unlock_tsop48(mp, &tsop48);
