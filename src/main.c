@@ -87,7 +87,6 @@ static struct option lopts[] = {
 	{ "icsp",	no_argument,		NULL,	'I'	},
 	{ "icsp-vcc",	no_argument,		NULL,	'i'	},
 	{ "db-file",	required_argument,	NULL,	'b'	},
-	{ "db-dump",	optional_argument,	NULL,	'l'	},
 	{ "chip-id-check-no-fail", no_argument,	NULL,	'y'	},
 	{ "chip-id-check-disable", no_argument,	NULL,	'f'	},
 	{ "no-size-error", no_argument,		NULL,	's'	},
@@ -116,7 +115,6 @@ static const char *lopts_descr[] = {
 	"			Use ICSP (without enabling Vcc)",
 	"			Use ICSP",
 	"<file_name>	chips database file name, default: "DB_FILE_DEF,
-	"			List all supported devices",
 	"	Do NOT error on chip ID mismatch",
 	"	Disable all chip ID checks and reading",
 	"		Do NOT error on file size mismatch (only a warning)",
@@ -243,23 +241,20 @@ restart_opts:
 		case 16: /* db-file */
 			cmd_opts->db_file_name = optarg;
 			break;
-		case 17: /* db-dump */
-			chip_db_dump_flt(optarg);
-			return (-1);
-		case 18: /* chip-id-check-no-fail */
+		case 17: /* chip-id-check-no-fail */
 			cmd_opts->chip_id_check_no_fail = 1;
 			break;
-		case 19: /* chip-id-check-disable */
+		case 18: /* chip-id-check-disable */
 			cmd_opts->chip_id_check_disable = 1;
 			break;
-		case 20: /* no-size-error */
+		case 19: /* no-size-error */
 			cmd_opts->size_error = 0;
 			break;
-		case 21: /* no-size-error-warn */
+		case 20: /* no-size-error-warn */
 			cmd_opts->size_error = 0;
 			cmd_opts->size_error_no_warn = 1;
 			break;
-		case 22: /* quiet */
+		case 21: /* quiet */
 			cmd_opts->quiet = 1;
 			break;
 		default:
@@ -310,12 +305,12 @@ main(int argc, char **argv) {
 	int error = 0;
 	cmd_opts_t cmd_opts;
 	minipro_p mp = NULL;
-	chip_p chip = NULL;
+	chip_p chips_db = NULL, chip = NULL;
 	int fd;
 	uint32_t chip_id_type, chip_id, chip_id_rev, chip_val, buf_val;
 	uint8_t chip_id_size, *file_data = NULL, *chip_data = NULL;
 	size_t file_data_size, chip_data_size;
-	size_t chip_size = 0, tr_size, err_offset;
+	size_t chip_size = 0, tr_size, err_offset, chips_db_count = 0;
 	off_t file_size;
 	char status_msg[64];
 
@@ -334,17 +329,18 @@ main(int argc, char **argv) {
 		if (NULL == cmd_opts.db_file_name) {
 			cmd_opts.db_file_name = DB_FILE_DEF;
 		}
-		error = chip_db_load(cmd_opts.db_file_name, 0);
+		error = chip_db_load(cmd_opts.db_file_name, 0,
+		    &chips_db, &chips_db_count);
 		if (0 != error) {
 			LOG_ERR_FMT(error, "Fail on chips DB load: %s",
 			    cmd_opts.db_file_name);
 			return (error);
 		}
-		printf("done, %zu loaded.\n", chip_db_get_count());
+		printf("done, %zu loaded.\n", chips_db_count);
 
 		/* Find chip. */
 		if (NULL != cmd_opts.chip_name) { /* By name. */
-			chip = chip_db_get_by_name(cmd_opts.chip_name);
+			chip = chip_db_get_by_name(chips_db, cmd_opts.chip_name);
 			if (NULL == chip) {
 				fprintf(stderr,
 				    "Chip \"%s\" not found, "
@@ -353,11 +349,11 @@ main(int argc, char **argv) {
 				    "%s --db-dump | grep %s\n",
 				    cmd_opts.chip_name, basename(argv[0]),
 				    cmd_opts.chip_name);
-				chip_db_dump_flt(cmd_opts.chip_name);
+				chip_db_dump_flt(chips_db, cmd_opts.chip_name);
 				return (-1);
 			}
 		} else if (0 != cmd_opts.chip_id_size) { /* By ID. */
-			chip = chip_db_get_by_id(cmd_opts.chip_id,
+			chip = chip_db_get_by_id(chips_db, cmd_opts.chip_id,
 			    cmd_opts.chip_id_size);
 			if (NULL == chip) {
 				fprintf(stderr, "Chip not found.\n");
@@ -522,7 +518,7 @@ main(int argc, char **argv) {
 				    chip->chip_id, chip_id,
 				    chip_id_rev);
 				chip_db_print_info(chip_db_get_by_id(
-				    chip_id, chip_id_size));
+				    chips_db, chip_id, chip_id_size));
 			} else {
 				fprintf(stderr,
 				    "Invalid Chip ID: expected 0x%02x, "
@@ -532,7 +528,7 @@ main(int argc, char **argv) {
 				    chip->chip_id, chip_id,
 				    chip_id_rev);
 				chip_db_print_info(chip_db_get_by_id(
-				    chip_id, chip_id_size));
+				    chips_db, chip_id, chip_id_size));
 				error = -1;
 				goto err_out;
 			}
@@ -673,7 +669,7 @@ err_out:
 	free(chip_data);
 	free(file_data);
 	minipro_close(mp);
-	chip_db_free();
+	chip_db_free(chips_db);
 
 	return (error);
 }

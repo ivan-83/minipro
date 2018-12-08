@@ -62,8 +62,6 @@ static fuse_decl_t pic2_fuses[] = {
 	{ .name = "conf_word1",	.cmd = MP_CMD_READ_CFG,	.size = 2, .offset = 2 },
 };
 
-static chip_p chips_db = NULL;
-static size_t chips_db_count = 0;
 
 /* Device ID table for the Microchip PIC controllers.
  * Extracted by Radioman from the last 6.82 minipro software.
@@ -226,9 +224,93 @@ chip_id_map(uint32_t index) {
 	return (&chip_id_map_tbl[index]);
 }
 
+int
+is_chip_id_prob_eq(const chip_p chip, const uint32_t id,
+    const uint8_t id_size) {
+
+	if (0 == chip->chip_id_size || 0 == id_size)
+		return ((chip->chip_id_size == id_size));
+	if (chip->chip_id_size == id_size)
+		return ((chip->chip_id == id));
+	if (chip->chip_id_size > id_size)
+		return (0);
+	/* chip->chip_id_size < id_size */
+	return ((chip->chip_id ==
+	    (id >> (8 * (id_size - chip->chip_id_size)))));
+}
+
+int
+is_chip_id_eq(const chip_p chip, const uint32_t id,
+    const uint8_t id_size) {
+
+	if (chip->chip_id_size != id_size ||
+	    0 == chip->chip_id_size)
+		return (0);
+	return ((chip->chip_id == id));
+}
+
+
+void
+chip_db_print_info(const chip_p chip) {
+
+	if (NULL == chip)
+		return;
+
+	printf("Name: %s\n", chip->name);
+
+	/* Memory shape */
+	printf("Memory: ");
+	switch (CHIP_OPT4_SIZE_UNITS(chip->opts4)) {
+	case CHIP_OPT4_SIZE_BYTES:
+		printf("%d Bytes", chip->code_memory_size);
+		break;
+	case CHIP_OPT4_SIZE_WORDS:
+		printf("%d Words", (chip->code_memory_size / 2));
+		break;
+	case CHIP_OPT4_SIZE_BITS:
+		printf("%d Bits", chip->code_memory_size);
+		break;
+	default:
+		printf(" unknown memory shape: 0x%x\n",
+		    CHIP_OPT4_SIZE_UNITS(chip->opts4));
+	}
+	if (chip->data_memory_size) {
+		printf(" + %d Bytes", chip->data_memory_size);
+	}
+	if (chip->data_memory2_size) {
+		printf(" + %d Bytes", chip->data_memory2_size);
+	}
+	printf("\n");
+
+	/* Package info */
+	printf("Package: ");
+	if (0 != (CHIP_PKG_D_ADAPTER_MASK & chip->package_details)) {
+		printf("Adapter%03d.JPG\n",
+		    CHIP_PKG_D_ADAPTER(chip->package_details));
+	} else if (0 != (CHIP_PKG_D_DIP_MASK & chip->package_details)) {
+		printf("DIP%d\n",
+		    CHIP_PKG_D_DIP(chip->package_details));
+	} else {
+		printf("ISP only\n");
+	}
+
+	/* ISP connection info */
+	printf("ISP: ");
+	if (0 != (CHIP_PKG_D_ISP_MASK & chip->package_details)) {
+		printf("ICP%03d.JPG\n",
+		    CHIP_PKG_D_ISP(chip->package_details));
+	} else {
+		printf("-\n");
+	}
+
+	printf("Protocol: 0x%02x\n", chip->protocol_id);
+	printf("Read buffer size: %d Bytes\n", chip->read_block_size);
+	printf("Write buffer size: %d Bytes\n", chip->write_block_size);
+}
+
 
 static int
-chip_db_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
+chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
     size_t sname_sz, chip_p chip) {
 	const uint8_t *vn, *val;
 	size_t voff, vn_sz, val_size;
@@ -349,36 +431,20 @@ chip_db_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 
 	return (0);
 }
-
-
-void
-chip_db_free(void) {
-	chip_p chip;
-
-	if (NULL == chips_db)
-		return;
-
-	for (chip = chips_db; NULL != chip->name; chip ++) {
-		free(chip->name);
-	}
-	free(chips_db);
-	chips_db = NULL;
-}
-
-int
-chip_db_load(const char *file_name, size_t file_name_size) {
+static int
+chip_db_ini_load(uint8_t *buf, size_t buf_size, chip_p *chips_db,
+    size_t *chips_db_count) {
 	int error;
-	uint8_t *buf = NULL;
 	const uint8_t *sname;
-	size_t buf_size, soff, sname_sz;
+	size_t soff, sname_sz;
 	size_t cdb_allocated = 0, cdb_count = 0;
 	ini_p ini = NULL;
+	chip_p cdb = NULL;
 
-	error = read_file(file_name, file_name_size, 0, 0,
-	    (1024 * 1024 * 1024) /* 1Gb */,
-	    &buf, &buf_size);
-	if (0 != error)
-		goto err_out;
+	if (NULL == buf || 0 == buf_size ||
+	    NULL == chips_db || NULL == chips_db_count)
+		return (EINVAL);
+
 	error = ini_create(&ini);
 	if (0 != error)
 		goto err_out;
@@ -388,78 +454,73 @@ chip_db_load(const char *file_name, size_t file_name_size) {
 	/* Load chips. */
 	soff = 0;
 	while (0 == ini_sect_enum(ini, &soff, &sname, &sname_sz)) {
-		error = realloc_items((void**)&chips_db,
+		error = realloc_items((void**)&cdb,
 		    sizeof(chip_t), &cdb_allocated,
 		    DB_CHIPS_PREALLOC, cdb_count);
 		if (0 != error)
 			goto err_out;
-		if (0 == chip_db_parse_item(ini, soff, sname, sname_sz,
-		    &chips_db[cdb_count])) {
+		if (0 == chip_db_ini_parse_item(ini, soff, sname, sname_sz,
+		    &cdb[cdb_count])) {
 			cdb_count ++;
 		}
 		soff ++;
 	}
 
 	/* Make sure that last NULL element exist. */
-	error = realloc_items((void**)&chips_db,
+	error = realloc_items((void**)&cdb,
 	    sizeof(chip_t), &cdb_allocated,
 	    4, (cdb_count + 1));
-	chips_db_count = cdb_count;
+	if (0 == error) {
+		(*chips_db) = cdb;
+		(*chips_db_count) = cdb_count;
+	}
 
 err_out:
 	if (0 != error) {
-		chip_db_free();
+		chip_db_free(cdb);
 	}
-	free(buf);
 	ini_destroy(ini);
 
 	return (error);
 }
 
-size_t
-chip_db_get_count(void) {
+
+void
+chip_db_free(chip_p chips_db) {
+	chip_p chip;
 
 	if (NULL == chips_db)
-		return (0);
-	return (chips_db_count);
-}
+		return;
 
-
-int
-is_chip_id_prob_eq(const chip_p chip, const uint32_t id,
-    const uint8_t id_size) {
-
-	if (0 == chip->chip_id_size || 0 == id_size)
-		return ((chip->chip_id_size == id_size));
-	if (chip->chip_id_size == id_size)
-		return ((chip->chip_id == id));
-	if (chip->chip_id_size > id_size)
-		return (0);
-	/* chip->chip_id_size < id_size */
-	return ((chip->chip_id ==
-	    (id >> (8 * (id_size - chip->chip_id_size)))));
+	for (chip = chips_db; NULL != chip->name; chip ++) {
+		free(chip->name);
+	}
+	free(chips_db);
 }
 
 int
-is_chip_id_eq(const chip_p chip, const uint32_t id,
-    const uint8_t id_size) {
+chip_db_load(const char *file_name, size_t file_name_size,
+    chip_p *chips_db, size_t *chips_db_count) {
+	int error;
+	uint8_t *buf = NULL;
+	size_t buf_size;
 
-	if (chip->chip_id_size != id_size ||
-	    0 == chip->chip_id_size)
-		return (0);
-	return ((chip->chip_id == id));
+	error = read_file(file_name, file_name_size, 0, 0,
+	    (1024 * 1024 * 1024) /* 1Gb */,
+	    &buf, &buf_size);
+	if (0 != error)
+		return (error);
+	error = chip_db_ini_load(buf, buf_size, chips_db, chips_db_count);
+
+	free(buf);
+
+	return (error);
 }
 
-chip_p
-chip_db_get_by_idx(const size_t index) {
-
-	if (NULL == chips_db || index >= chips_db_count)
-		return (NULL);
-	return (&chips_db[index]);
-}
 
 chip_p
-chip_db_get_by_id(const uint32_t chip_id, const uint8_t chip_id_size) {
+chip_db_get_by_id(chip_p chips_db, const uint32_t chip_id,
+    const uint8_t chip_id_size) {
 	chip_p chip;
 
 	if (NULL == chips_db || 0 == chip_id_size)
@@ -475,7 +536,7 @@ chip_db_get_by_id(const uint32_t chip_id, const uint8_t chip_id_size) {
 }
 
 chip_p
-chip_db_get_by_name(const char *name) {
+chip_db_get_by_name(chip_p chips_db, const char *name) {
 	chip_p chip;
 
 	if (NULL == chips_db)
@@ -489,7 +550,7 @@ chip_db_get_by_name(const char *name) {
 }
 
 void
-chip_db_dump_flt(const char *name) {
+chip_db_dump_flt(chip_p chips_db, const char *name) {
 	chip_p chip;
 	size_t name_size = 0;
 
@@ -504,62 +565,4 @@ chip_db_dump_flt(const char *name) {
 			continue;
 		printf("0x%04x:	%s\n", chip->chip_id, chip->name);
 	}
-}
-
-void
-chip_db_print_info(const chip_p chip) {
-
-	if (NULL == chip)
-		return;
-
-	printf("Name: %s\n", chip->name);
-
-	/* Memory shape */
-	printf("Memory: ");
-	switch (CHIP_OPT4_SIZE_UNITS(chip->opts4)) {
-	case CHIP_OPT4_SIZE_BYTES:
-		printf("%d Bytes", chip->code_memory_size);
-		break;
-	case CHIP_OPT4_SIZE_WORDS:
-		printf("%d Words", (chip->code_memory_size / 2));
-		break;
-	case CHIP_OPT4_SIZE_BITS:
-		printf("%d Bits", chip->code_memory_size);
-		break;
-	default:
-		printf(" unknown memory shape: 0x%x\n",
-		    CHIP_OPT4_SIZE_UNITS(chip->opts4));
-	}
-	if (chip->data_memory_size) {
-		printf(" + %d Bytes", chip->data_memory_size);
-	}
-	if (chip->data_memory2_size) {
-		printf(" + %d Bytes", chip->data_memory2_size);
-	}
-	printf("\n");
-
-	/* Package info */
-	printf("Package: ");
-	if (0 != (CHIP_PKG_D_ADAPTER_MASK & chip->package_details)) {
-		printf("Adapter%03d.JPG\n",
-		    CHIP_PKG_D_ADAPTER(chip->package_details));
-	} else if (0 != (CHIP_PKG_D_DIP_MASK & chip->package_details)) {
-		printf("DIP%d\n",
-		    CHIP_PKG_D_DIP(chip->package_details));
-	} else {
-		printf("ISP only\n");
-	}
-
-	/* ISP connection info */
-	printf("ISP: ");
-	if (0 != (CHIP_PKG_D_ISP_MASK & chip->package_details)) {
-		printf("ICP%03d.JPG\n",
-		    CHIP_PKG_D_ISP(chip->package_details));
-	} else {
-		printf("-\n");
-	}
-
-	printf("Protocol: 0x%02x\n", chip->protocol_id);
-	printf("Read buffer size: %d Bytes\n", chip->read_block_size);
-	printf("Write buffer size: %d Bytes\n", chip->write_block_size);
 }
