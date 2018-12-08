@@ -20,6 +20,7 @@ Autoelectric (http://www.autoelectric.cn/)
 * Modern CMake build system
 * Less code, more clean code, fixed code style
 * All futures after fork is backported
+* Tool to extract chips database from vendor InfoIC.dll library
 
 ## Prerequisites
 
