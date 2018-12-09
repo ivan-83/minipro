@@ -16,6 +16,7 @@ typedef struct fuse_decl_s {
 typedef struct chip_s {
 	char		*name;
 	uint8_t		protocol_id;
+	//uint8_t		type;	/* Not used. */
 	uint8_t		variant;
 	uint32_t	read_block_size;
 	uint32_t	write_block_size;
@@ -35,7 +36,14 @@ typedef struct chip_s {
 	fuse_decl_p	fuses;		/* Configuration bytes that's presenting in some architectures. */
 } __attribute__((__packed__)) chip_t, *chip_p;
 
-#define CHIP_NAME_MAX		64	/* Max chip name len. */
+#define CHIP_NAME_MAX			64	/* Max chip name len. */
+
+/* type */
+#define CHIP_TYPE_EEPROM		0x01 /* ROM/FLASH/NVRAM */
+#define CHIP_TYPE_MCU_MPU		0x02 /* MCU/MPU */
+#define CHIP_TYPE_PLD_GAL_CPLD		0x03 /* PLD/GAL/CPLD */
+#define CHIP_TYPE_SRAM_DRAM		0x04 /* SRAM/DRAM */
+#define CHIP_TYPE_LOGIC_IC		0x05 /* Logic IC */
 
 /* opts4 */
 #define CHIP_OPT4_SIZE_UNITS_MASK	0xff000000
@@ -64,6 +72,11 @@ typedef struct chip_s {
 #define CHIP_PKG_D_ISP(__val)		(((__val) & CHIP_PKG_D_ISP_MASK) >> 8)
 #define CHIP_PKG_D_DIP_MASK		0xff000000 /* 7f? */
 #define CHIP_PKG_D_DIP(__val)		(((__val) & CHIP_PKG_D_DIP_MASK) >> 24)
+#define CHIP_PKG_D_DIP_DIP8			0x08
+#define CHIP_PKG_D_DIP_DIP14			0x0e
+#define CHIP_PKG_D_DIP_DIP16			0x10
+#define CHIP_PKG_D_DIP_DIP20			0x14
+#define CHIP_PKG_D_DIP_DIP24			0x18
 #define CHIP_PKG_D_DIP_DIP28			0x1c
 #define CHIP_PKG_D_DIP_DIP32			0x20
 #define CHIP_PKG_D_DIP_DIP40			0x28
@@ -73,6 +86,8 @@ typedef struct chip_s {
 #define CHIP_PKG_D_DIP_SOP20			0x94
 #define CHIP_PKG_D_DIP_SOP24			0x98
 #define CHIP_PKG_D_DIP_SOP28			0x9c
+#define CHIP_PKG_D_DIP_SOP32			0xa0
+#define CHIP_PKG_D_DIP_SOP40			0xa8
 #define CHIP_PKG_D_DIP_PLCC44			0xfd
 #define CHIP_PKG_D_DIP_PLCC32			0xff
 
