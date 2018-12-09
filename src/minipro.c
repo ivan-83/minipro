@@ -421,12 +421,14 @@ msg_chip_hdr_gen(chip_p chip, uint8_t icsp, uint8_t *buf,
 static void
 msg_chip_hdr_set(minipro_p mp, uint8_t cmd, size_t msg_size) {
 
-	memcpy(mp->msg, mp->msg_hdr, msg_size);
-	mp->msg[0] = cmd;
-	if (sizeof(mp->msg_hdr) < msg_size) {
+	if (sizeof(mp->msg_hdr) >= msg_size) {
+		memcpy(mp->msg, mp->msg_hdr, msg_size);
+	} else {
+		memcpy(mp->msg, mp->msg_hdr, sizeof(mp->msg_hdr));
 		memset((mp->msg + sizeof(mp->msg_hdr)), 0x00,
 		    (msg_size - sizeof(mp->msg_hdr)));
 	}
+	mp->msg[0] = cmd;
 }
 
 static int
