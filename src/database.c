@@ -209,9 +209,6 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 		} else if (0 == mem_cmpn_cstr("package_details", vn, vn_sz)) {
 			chip->package_details = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 14);
-		} else if (0 == mem_cmpn_cstr("write_unlock", vn, vn_sz)) {
-			chip->write_unlock = ustrh2u16(val, val_size);
-			smask |= (((uint32_t)1) << 15);
 		} else if (0 == mem_cmpn_cstr("fuses", vn, vn_sz)) {
 			if (0 == mem_cmpn_cstr("NULL", val, val_size)) {
 				chip->fuses = NULL;
@@ -234,7 +231,7 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 				    "line %zu.\n",
 				    (int)val_size, val, voff);
 			}
-			smask |= (((uint32_t)1) << 16);
+			smask |= (((uint32_t)1) << 15);
 		} else {
 			fprintf(stderr,
 			    "Unknown field: \"%.*s\", line %zu.\n",
@@ -244,7 +241,7 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 	}
 
 	/* Is all fields set? */
-	if (((((uint32_t)1) << 17) - 1) != smask) {
+	if (((((uint32_t)1) << 16) - 1) != smask) {
 		fprintf(stderr,
 		    "Section: \"%.*s\", at line %zu does not contain "
 		    "all required fields.\n",
@@ -439,7 +436,6 @@ chip_db_dump(chip_p chips_db) {
 		    "opts3=0x%02x\n"
 		    "opts4=0x%02x\n"
 		    "package_details=0x%08x\n"
-		    "write_unlock=0x%02x\n"
 		    "fuses=%s\n"
 		    "\n",
 		    chip->name,
@@ -459,7 +455,6 @@ chip_db_dump(chip_p chips_db) {
 		    chip->opts3,
 		    chip->opts4,
 		    chip->package_details,
-		    chip->write_unlock,
 		    fuses);
 	}
 }

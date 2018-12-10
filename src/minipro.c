@@ -951,7 +951,13 @@ minipro_erase(minipro_p mp) {
 		return (EINVAL);
 	MP_RET_ON_ERR(minipro_begin_transaction(mp));
 	msg_chip_hdr_set(mp, MP_CMD_ERASE, 15);
-	mp->msg[2] = mp->chip->write_unlock;
+	/* Set fuses count. */
+	if (NULL == mp->chip->fuses ||
+	    0 == mp->chip->fuses[0].size) {
+		mp->msg[2] = 1;
+	} else {
+		mp->msg[2] = mp->chip->fuses[0].size;
+	}
 	MP_RET_ON_ERR_CLEANUP(msg_send(mp, mp->msg, 15, NULL));
 	MP_RET_ON_ERR_CLEANUP(msg_recv(mp, mp->msg, sizeof(mp->msg),
 	    &rcvd)); /* rcvd == 10 */

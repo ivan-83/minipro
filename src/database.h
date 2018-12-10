@@ -31,7 +31,6 @@ typedef struct chip_s {
 	uint32_t	opts3;		// XXX: uint16_t
 	uint32_t	opts4;
 	uint32_t	package_details; /* Pins count or image ID for some devices. */
-	uint16_t	write_unlock;	// XXX: uint8_t
 	fuse_decl_p	fuses;		/* Configuration bytes that's presenting in some architectures. */
 } __attribute__((__packed__)) chip_t, *chip_p;
 
