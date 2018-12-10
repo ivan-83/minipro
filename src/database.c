@@ -63,166 +63,6 @@ static fuse_decl_t pic2_fuses[] = {
 };
 
 
-/* Device ID table for the Microchip PIC controllers.
- * Extracted by Radioman from the last 6.82 minipro software.
- */
-static chip_id_map_t chip_id_map_tbl[] = {
-	{ .shift = 0x00, .chip_id = 0x00000000 }, /* none. */
-	{ .shift = 0x04, .chip_id = 0x000000e4 },
-	{ .shift = 0x04, .chip_id = 0x000000e6 },
-	{ .shift = 0x04, .chip_id = 0x000000e0 },
-	{ .shift = 0x04, .chip_id = 0x000000e2 },
-	{ .shift = 0x04, .chip_id = 0x0000007d },
-	{ .shift = 0x05, .chip_id = 0x00000023 },
-	{ .shift = 0x05, .chip_id = 0x00000091 },
-	{ .shift = 0x05, .chip_id = 0x00000085 },
-	{ .shift = 0x05, .chip_id = 0x00000085 },
-	{ .shift = 0x05, .chip_id = 0x000000a2 },
-	{ .shift = 0x05, .chip_id = 0x00000084 },
-	{ .shift = 0x05, .chip_id = 0x00000025 },
-	{ .shift = 0x05, .chip_id = 0x00000099 },
-	{ .shift = 0x05, .chip_id = 0x0000008c },
-	{ .shift = 0x05, .chip_id = 0x0000009a },
-	{ .shift = 0x05, .chip_id = 0x000000a0 },
-	{ .shift = 0x05, .chip_id = 0x00000005 },
-	{ .shift = 0x05, .chip_id = 0x00000030 },
-	{ .shift = 0x05, .chip_id = 0x00000031 },
-	{ .shift = 0x05, .chip_id = 0x00000032 },
-	{ .shift = 0x05, .chip_id = 0x00000033 },
-	{ .shift = 0x05, .chip_id = 0x00000082 },
-	{ .shift = 0x05, .chip_id = 0x00000083 },
-	{ .shift = 0x05, .chip_id = 0x00000088 },
-	{ .shift = 0x05, .chip_id = 0x00000082 },
-	{ .shift = 0x05, .chip_id = 0x00000083 },
-	{ .shift = 0x05, .chip_id = 0x00000088 },
-	{ .shift = 0x05, .chip_id = 0x00000068 },
-	{ .shift = 0x05, .chip_id = 0x00000069 },
-	{ .shift = 0x05, .chip_id = 0x00000047 },
-	{ .shift = 0x05, .chip_id = 0x0000004b },
-	{ .shift = 0x05, .chip_id = 0x00000049 },
-	{ .shift = 0x05, .chip_id = 0x0000004f },
-	{ .shift = 0x05, .chip_id = 0x0000004d },
-	{ .shift = 0x05, .chip_id = 0x0000004c },
-	{ .shift = 0x04, .chip_id = 0x0000004e },
-	{ .shift = 0x04, .chip_id = 0x00000100 },
-	{ .shift = 0x05, .chip_id = 0x00000101 },
-	{ .shift = 0x05, .chip_id = 0x00000102 },
-	{ .shift = 0x05, .chip_id = 0x00000103 },
-	{ .shift = 0x05, .chip_id = 0x00000104 },
-	{ .shift = 0x05, .chip_id = 0x00000072 },
-	{ .shift = 0x04, .chip_id = 0x00000076 },
-	{ .shift = 0x04, .chip_id = 0x0000013e },
-	{ .shift = 0x04, .chip_id = 0x0000013c },
-	{ .shift = 0x04, .chip_id = 0x0000013a },
-	{ .shift = 0x04, .chip_id = 0x00000138 },
-	{ .shift = 0x04, .chip_id = 0x00000146 },
-	{ .shift = 0x04, .chip_id = 0x0000005d },
-	{ .shift = 0x05, .chip_id = 0x0000005f },
-	{ .shift = 0x05, .chip_id = 0x0000007d },
-	{ .shift = 0x05, .chip_id = 0x0000006f },
-	{ .shift = 0x05, .chip_id = 0x00000090 },
-	{ .shift = 0x05, .chip_id = 0x00000091 },
-	{ .shift = 0x05, .chip_id = 0x00000112 },
-	{ .shift = 0x05, .chip_id = 0x00000113 },
-	{ .shift = 0x05, .chip_id = 0x0000010c },
-	{ .shift = 0x05, .chip_id = 0x00000092 },
-	{ .shift = 0x05, .chip_id = 0x00000114 },
-	{ .shift = 0x05, .chip_id = 0x00000115 },
-	{ .shift = 0x05, .chip_id = 0x0000010d },
-	{ .shift = 0x05, .chip_id = 0x00000093 },
-	{ .shift = 0x05, .chip_id = 0x0000007c },
-	{ .shift = 0x05, .chip_id = 0x0000007e },
-	{ .shift = 0x05, .chip_id = 0x00000086 },
-	{ .shift = 0x05, .chip_id = 0x00000087 },
-	{ .shift = 0x05, .chip_id = 0x000000c4 },
-	{ .shift = 0x05, .chip_id = 0x000000c3 },
-	{ .shift = 0x05, .chip_id = 0x000000c2 },
-	{ .shift = 0x05, .chip_id = 0x000000c1 },
-	{ .shift = 0x05, .chip_id = 0x000000c0 },
-	{ .shift = 0x05, .chip_id = 0x000000cc },
-	{ .shift = 0x05, .chip_id = 0x000000cb },
-	{ .shift = 0x05, .chip_id = 0x000000ca },
-	{ .shift = 0x05, .chip_id = 0x000000c9 },
-	{ .shift = 0x05, .chip_id = 0x000000c8 },
-	{ .shift = 0x05, .chip_id = 0x000000d9 },
-	{ .shift = 0x05, .chip_id = 0x000000d8 },
-	{ .shift = 0x05, .chip_id = 0x000000db },
-	{ .shift = 0x05, .chip_id = 0x000000da },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x0000002b },
-	{ .shift = 0x05, .chip_id = 0x0000002b },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x00000000 },
-	{ .shift = 0x05, .chip_id = 0x0000008a },
-	{ .shift = 0x05, .chip_id = 0x0000008a }
-};
-
-
-chip_id_map_p
-chip_id_map(uint32_t index) {
-
-	if (0 == index || index >= SIZEOF(chip_id_map_tbl))
-		return (NULL);	
-	return (&chip_id_map_tbl[index]);
-}
 
 int
 is_chip_id_prob_eq(const chip_p chip, const uint32_t id,
@@ -315,7 +155,6 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 	const uint8_t *vn, *val;
 	size_t voff, vn_sz, val_size;
 	uint32_t smask;
-	chip_id_map_p id_map;
 
 	if (NULL == ini || NULL == sname || NULL == chip)
 		return (EINVAL);
@@ -331,20 +170,20 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 		} else if (0 == mem_cmpn_cstr("variant", vn, vn_sz)) {
 			chip->variant = ustrh2u8(val, val_size);
 			smask |= (((uint32_t)1) << 1);
-		} else if (0 == mem_cmpn_cstr("read_block_size", vn, vn_sz)) {
-			chip->read_block_size = ustrh2u32(val, val_size);
-			smask |= (((uint32_t)1) << 2);
-		} else if (0 == mem_cmpn_cstr("write_block_size", vn, vn_sz)) {
-			chip->write_block_size = ustrh2u32(val, val_size);
-			smask |= (((uint32_t)1) << 3);
 		} else if (0 == mem_cmpn_cstr("code_memory_size", vn, vn_sz)) {
 			chip->code_memory_size = ustrh2u32(val, val_size);
-			smask |= (((uint32_t)1) << 4);
+			smask |= (((uint32_t)1) << 2);
 		} else if (0 == mem_cmpn_cstr("data_memory_size", vn, vn_sz)) {
 			chip->data_memory_size = ustrh2u32(val, val_size);
-			smask |= (((uint32_t)1) << 5);
+			smask |= (((uint32_t)1) << 3);
 		} else if (0 == mem_cmpn_cstr("data_memory2_size", vn, vn_sz)) {
 			chip->data_memory2_size = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 4);
+		} else if (0 == mem_cmpn_cstr("read_block_size", vn, vn_sz)) {
+			chip->read_block_size = ustrh2u32(val, val_size);
+			smask |= (((uint32_t)1) << 5);
+		} else if (0 == mem_cmpn_cstr("write_block_size", vn, vn_sz)) {
+			chip->write_block_size = ustrh2u32(val, val_size);
 			smask |= (((uint32_t)1) << 6);
 		} else if (0 == mem_cmpn_cstr("chip_id", vn, vn_sz)) {
 			chip->chip_id = ustrh2u32(val, val_size);
@@ -352,24 +191,27 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 		} else if (0 == mem_cmpn_cstr("chip_id_size", vn, vn_sz)) {
 			chip->chip_id_size = ustrh2u8(val, val_size);
 			smask |= (((uint32_t)1) << 8);
+		} else if (0 == mem_cmpn_cstr("chip_id_shift", vn, vn_sz)) {
+			chip->chip_id_shift = ustrh2u8(val, val_size);
+			smask |= (((uint32_t)1) << 9);
 		} else if (0 == mem_cmpn_cstr("opts1", vn, vn_sz)) {
 			chip->opts1 = ustrh2u16(val, val_size);
-			smask |= (((uint32_t)1) << 9);
+			smask |= (((uint32_t)1) << 10);
 		} else if (0 == mem_cmpn_cstr("opts2", vn, vn_sz)) {
 			chip->opts2 = ustrh2u16(val, val_size);
-			smask |= (((uint32_t)1) << 10);
+			smask |= (((uint32_t)1) << 11);
 		} else if (0 == mem_cmpn_cstr("opts3", vn, vn_sz)) {
 			chip->opts3 = ustrh2u32(val, val_size);
-			smask |= (((uint32_t)1) << 11);
+			smask |= (((uint32_t)1) << 12);
 		} else if (0 == mem_cmpn_cstr("opts4", vn, vn_sz)) {
 			chip->opts4 = ustrh2u32(val, val_size);
-			smask |= (((uint32_t)1) << 12);
+			smask |= (((uint32_t)1) << 13);
 		} else if (0 == mem_cmpn_cstr("package_details", vn, vn_sz)) {
 			chip->package_details = ustrh2u32(val, val_size);
-			smask |= (((uint32_t)1) << 13);
+			smask |= (((uint32_t)1) << 14);
 		} else if (0 == mem_cmpn_cstr("write_unlock", vn, vn_sz)) {
 			chip->write_unlock = ustrh2u16(val, val_size);
-			smask |= (((uint32_t)1) << 14);
+			smask |= (((uint32_t)1) << 15);
 		} else if (0 == mem_cmpn_cstr("fuses", vn, vn_sz)) {
 			if (0 == mem_cmpn_cstr("NULL", val, val_size)) {
 				chip->fuses = NULL;
@@ -392,7 +234,7 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 				    "line %zu.\n",
 				    (int)val_size, val, voff);
 			}
-			smask |= (((uint32_t)1) << 15);
+			smask |= (((uint32_t)1) << 16);
 		} else {
 			fprintf(stderr,
 			    "Unknown field: \"%.*s\", line %zu.\n",
@@ -402,26 +244,12 @@ chip_db_ini_parse_item(ini_p ini, size_t soff, const uint8_t *sname,
 	}
 
 	/* Is all fields set? */
-	if (((((uint32_t)1) << 16) - 1) != smask) {
+	if (((((uint32_t)1) << 17) - 1) != smask) {
 		fprintf(stderr,
 		    "Section: \"%.*s\", at line %zu does not contain "
 		    "all required fields.\n",
 		    (int)sname_sz, sname, soff);
 		return (EINVAL);
-	}
-
-	/* This is a workaround for al Microchip controllers.
-	 * These controllers have the Chip ID defined elsewhere, not in
-	 * the infoic.dll but in a table located inside the Minipro.exe
-	 * For these controlers (almost 600 devices) the opts3 is an
-	 * index in this table.
-	 */
-	if ((0 == chip->chip_id && 0 != chip->chip_id_size) ||
-	    0 != (CHIP_OPT4_CHIP_ID & chip->opts4)) {
-		id_map = chip_id_map(chip->opts3);
-		if (NULL != id_map) {
-			chip->chip_id = id_map->chip_id;
-		}
 	}
 
 	/* Store name. */
@@ -564,5 +392,74 @@ chip_db_dump_flt(chip_p chips_db, const char *name) {
 		    strncasecmp(chip->name, name, name_size))
 			continue;
 		printf("0x%04x:	%s\n", chip->chip_id, chip->name);
+	}
+}
+
+void
+chip_db_dump(chip_p chips_db) {
+	const char *fuses;
+	chip_p chip;
+
+	if (NULL == chips_db)
+		return;
+
+
+	for (chip = chips_db; NULL != chip->name; chip ++) {
+		if (atmel_lock == chip->fuses) {
+			fuses = "atmel_lock";
+		} else if (avr_fuses == chip->fuses) {
+			fuses = "avr_fuses";
+		} else if (avr2_fuses == chip->fuses) {
+			fuses = "avr2_fuses";
+		} else if (avr3_fuses == chip->fuses) {
+			fuses = "avr3_fuses";
+		} else if (pic_fuses == chip->fuses) {
+			fuses = "pic_fuses";
+		} else if (pic2_fuses == chip->fuses) {
+			fuses = "pic2_fuses";
+		} else  {
+			fuses = "NULL";
+		}
+
+		printf(
+		    "[%s]\n"
+		    "protocol_id=0x%02x\n"
+		    //"type=0x%02x\n"
+		    "variant=0x%02x\n"
+		    "code_memory_size=0x%02x\n"
+		    "data_memory_size=0x%02x\n"
+		    "data_memory2_size=0x%02x\n"
+		    "read_block_size=0x%02x\n"
+		    "write_block_size=0x%02x\n"
+		    "chip_id=0x%02x\n"
+		    "chip_id_size=0x%02x\n"
+		    "chip_id_shift=0x%02x\n"
+		    "opts1=0x%02x\n"
+		    "opts2=0x%02x\n"
+		    "opts3=0x%02x\n"
+		    "opts4=0x%02x\n"
+		    "package_details=0x%08x\n"
+		    "write_unlock=0x%02x\n"
+		    "fuses=%s\n"
+		    "\n",
+		    chip->name,
+		    chip->protocol_id,
+		    //chip->type,
+		    chip->variant,
+		    chip->code_memory_size,
+		    chip->data_memory_size,
+		    chip->data_memory2_size,
+		    chip->read_block_size,
+		    chip->write_block_size,
+		    chip->chip_id,
+		    (uint32_t)chip->chip_id_size,
+		    (uint32_t)chip->chip_id_shift,
+		    chip->opts1,
+		    chip->opts2,
+		    chip->opts3,
+		    chip->opts4,
+		    chip->package_details,
+		    chip->write_unlock,
+		    fuses);
 	}
 }

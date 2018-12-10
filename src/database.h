@@ -18,21 +18,20 @@ typedef struct chip_s {
 	uint8_t		protocol_id;
 	//uint8_t		type;	/* Not used. */
 	uint8_t		variant;
-	uint32_t	read_block_size;
-	uint32_t	write_block_size;
-
 	uint32_t	code_memory_size; /* Presenting for every device. */
 	uint32_t	data_memory_size;
 	uint32_t	data_memory2_size;
+	uint32_t	read_block_size;
+	uint32_t	write_block_size;
 	uint32_t	chip_id;	/* A vendor-specific chip ID (i.e. 0x1E9502 for ATMEGA48). */
 	uint8_t		chip_id_size;	/* chip_id_bytes_count */
+	uint8_t		chip_id_shift;	/* PIC controllers device ID have a variable bitfield Revision number. */
 	uint16_t	opts1;
 	uint16_t	opts2;
 	uint32_t	opts3;		// XXX: uint16_t
 	uint32_t	opts4;
 	uint32_t	package_details; /* Pins count or image ID for some devices. */
 	uint16_t	write_unlock;	// XXX: uint8_t
-
 	fuse_decl_p	fuses;		/* Configuration bytes that's presenting in some architectures. */
 } __attribute__((__packed__)) chip_t, *chip_p;
 
@@ -93,14 +92,6 @@ typedef struct chip_s {
 
 
 
-typedef struct chip_id_map_s {
-	uint8_t		shift;
-	uint32_t	chip_id;
-} chip_id_map_t, *chip_id_map_p;
-
-
-
-chip_id_map_p chip_id_map(uint32_t index);
 int	is_chip_id_prob_eq(const chip_p chip, const uint32_t id,
 	    const uint8_t id_size);
 int	is_chip_id_eq(const chip_p chip, const uint32_t id,
@@ -118,5 +109,6 @@ chip_p	chip_db_get_by_id(chip_p chips_db, const uint32_t chip_id,
 chip_p	chip_db_get_by_name(chip_p chips_db, const char *name);
 
 void	chip_db_dump_flt(chip_p chips_db, const char *name);
+void	chip_db_dump(chip_p chips_db);
 
 #endif

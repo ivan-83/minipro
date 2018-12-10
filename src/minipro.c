@@ -897,7 +897,6 @@ minipro_get_chip_id(minipro_p mp, uint32_t *chip_id_type,
 	int error;
 	size_t rcvd;
 	uint32_t chip_id_tm;
-	chip_id_map_p id_map;
 
 	if (NULL == mp || NULL == mp->chip || NULL == chip_id_type ||
 	    NULL == chip_id || NULL == chip_id_size)
@@ -926,14 +925,9 @@ minipro_get_chip_id(minipro_p mp, uint32_t *chip_id_type,
 		(*chip_id_rev) = (chip_id_tm & 0x0000001f);
 		break;
 	case MP_CHIP_ID_TYPE4:
-		id_map = chip_id_map(mp->chip->opts3);
-		if (NULL == id_map) {
-			error = EINVAL;
-			goto err_out;
-		}
-		(*chip_id) = (chip_id_tm >> id_map->shift);
+		(*chip_id) = (chip_id_tm >> mp->chip->chip_id_shift);
 		(*chip_id_rev) = (chip_id_tm &
-		    ((0x00000001 << id_map->shift) - 1));
+		    ((0x00000001 << mp->chip->chip_id_shift) - 1));
 		break;
 	default:
 		error = EINVAL;
