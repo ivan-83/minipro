@@ -92,7 +92,7 @@ static const char *minipro_dev_status_str[] = {
 #define		MP_TSOP48_TYPE_V2	0x02
 #define		MP_TSOP48_TYPE_FAKE1	0x03
 #define		MP_TSOP48_TYPE_FAKE2	0x04
-#define MP_CMD_REQ_STATUS	0xfe
+#define MP_CMD_GET_STATUS	0xfe
 typedef struct minipro_status_s {
 	uint16_t	error;
 	uint16_t	c1;

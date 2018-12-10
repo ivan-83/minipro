@@ -1023,7 +1023,7 @@ minipro_get_status(minipro_p mp, minipro_status_p status) {
 	if (NULL == mp || NULL == mp->chip || NULL == status)
 		return (EINVAL);
 
-	MP_RET_ON_ERR(msg_send_chip_hdr(mp, MP_CMD_REQ_STATUS, 5, NULL));
+	MP_RET_ON_ERR(msg_send_chip_hdr(mp, MP_CMD_GET_STATUS, 5, NULL));
 	MP_RET_ON_ERR(msg_recv(mp, mp->msg, sizeof(mp->msg), &rcvd)); /* rcvd == 32 */
 	if (10 > rcvd)
 		return (EMSGSIZE);
