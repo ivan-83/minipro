@@ -25,14 +25,14 @@ option(ENABLE_COVERAGE		"Build with code coverage options [default: OFF]"	OFF)
 option(ENABLE_FULL_DEBUG	"Build with all possible debug [default: OFF]"		OFF)
 
 # Now CMAKE_INSTALL_PREFIX is a base prefix for everything
-IF(NOT SHARE_DIR)
+if (NOT SHARE_DIR)
 	set(SHARE_DIR "${CMAKE_INSTALL_PREFIX}/share/minipro")
-ENDIF()
+endif()
 
 ############################# INCLUDE SECTION ##########################
 
-INCLUDE(CheckFunctionExists)
-INCLUDE(CheckCCompilerFlag)
+include(CheckFunctionExists)
+include(CheckCCompilerFlag)
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(LIBUSB1 REQUIRED libusb-1.0)
@@ -134,7 +134,9 @@ try_c_flag(MFUNCTION_RETURN		"-mfunction-return=thunk")
 try_c_flag(MINDIRECT_BRANCH		"-mindirect-branch=thunk")
 try_c_flag(FWRAPV			"-fwrapv")
 try_c_flag(FPIE				"-fPIE")
-try_linker_flag(PIE			"-pie")
+if (C_FLAG_FPIE)
+	try_linker_flag(PIE		"-pie")
+endif()
 try_linker_flag(RETPOLINEPLT		"-Wl,-z,retpolineplt")
 try_linker_flag(ZRELRO			"-Wl,-z,relro")
 try_linker_flag(ZNOW			"-Wl,-z,now")
